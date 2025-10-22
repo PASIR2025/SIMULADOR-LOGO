@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>SIMUPASIR — móvil</title>
 
-<!-- PWA (rutas relativas para GitHub Pages) -->
+<!-- PWA (rutas relativas para GitHub Pages / hosting estático) -->
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#003366">
 <link rel="icon" href="./icons/icon-192.png">
@@ -21,7 +21,10 @@
     --wire:#000;
     --neon:#00ff66;
     --accent:#444;
-    --pin-long:56px;            /* ↑ antes 48px: pines un poco más largos para fácil toque */
+    /* Pines: visible 24x7, pero con hitbox alto 28px */
+    --pin-long:24px;           /* largo visible 24px (izq/der del bloque) */
+    --pin-hit-h:28px;          /* alto del hitbox real */
+    --pin-visible-h:7px;       /* alto visible de la “línea” */
     --workspace-size:5000px;
   }
 
@@ -47,40 +50,47 @@
   .label { font-weight:900; margin-bottom:6px; pointer-events:none; font-size:14px; color:#222; }
   .selected { box-shadow: 0 10px 18px rgba(0,0,0,0.12); border-color:#0058a3!important; transform: translateY(-2px); }
 
-  /* Pines (↑ alto 16px para mejorar toque) */
-  .terminal { height:16px; background:var(--pin); position:absolute; cursor:pointer; border-radius:6px; box-shadow:0 1px 0 rgba(0,0,0,0.15); }
-  .terminal.input { width:var(--pin-long); left:calc(-1 * var(--pin-long)); }
-  .terminal.output { width:var(--pin-long); right:calc(-1 * var(--pin-long)); top:50%; transform:translateY(-50%); }
-  .term-label { position:absolute; left:calc(-1 * var(--pin-long) - 36px); width:40px; text-align:right; font-size:12px; color:#222; user-select:none; }
+  /* Pines: el elemento es el HITBOX; la línea visible va en ::before */
+  .terminal {
+    position:absolute; cursor:pointer; border-radius:8px; box-shadow:0 1px 0 rgba(0,0,0,0.08);
+    height:var(--pin-hit-h);               /* hitbox alto (grande para dedo) */
+    background:transparent;                /* sin color visible aquí */
+  }
+  .terminal::before{
+    content:""; position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+    height:var(--pin-visible-h); border-radius:4px; background:var(--pin);
+    display:block;
+  }
+  .terminal.input { width:var(--pin-long); left: calc(-1 * var(--pin-long)); }
+  .terminal.output { width:var(--pin-long); right: calc(-1 * var(--pin-long)); top:50%; transform: translateY(-50%); }
 
-  /* Pines seleccionados y destino */
-  .terminal.pin-selected{
-    background:#0078d7 !important;
-    box-shadow:0 0 0 3px rgba(0,120,215,.25);
-  }
-  .terminal.pin-target{
-    outline:2px solid #0078d7;
-    outline-offset:2px;
-  }
+  /* Colores de estado del pin (aplican a la “línea” visible) */
+  .terminal.pin-selected::before { background:#0078d7 !important; box-shadow:0 0 0 3px rgba(0,120,215,.25); }
+  .terminal.pin-target { outline:2px solid #0078d7; outline-offset:2px; }
+  .terminal.signal-on::before { background:var(--neon) !important; }
+
+  .term-label { position:absolute; left:calc(-1 * var(--pin-long) - 36px); width:40px; text-align:right; font-size:12px; color:#222; user-select:none; }
 
   /* Cables */
   #wires { position:absolute; top:0; left:0; width:var(--workspace-size); height:var(--workspace-size); pointer-events:auto; z-index:6; }
 
-  /* Hitbox invisible más grueso (↑ 28px) para tocar fácil */
+  /* Hitbox invisible MUY grueso para tocar fácil (40px) */
   .wire-hit{
-    fill:none; stroke:#000; stroke-width:28; stroke-opacity:0;
+    fill:none; stroke:#000; stroke-width:40; stroke-opacity:0;
     vector-effect:non-scaling-stroke; pointer-events:stroke; stroke-linecap:round;
   }
-  /* Cable un poco más grueso visualmente (↑ normal 3px, señal 4px) */
-  .wire-path { fill:none; stroke:var(--wire); stroke-width:3; cursor:pointer; vector-effect:non-scaling-stroke; pointer-events:stroke; }
-  .wire-path.signal { stroke:var(--neon); stroke-width:4; filter: drop-shadow(0 0 8px rgba(0,255,102,0.25)); }
-  .wire-path.selected { stroke:#0078d7; stroke-width:4; } /* Azul cuando está seleccionado */
-  .wire-path.ghost { stroke-dasharray:6 6; opacity:.7; }
 
-  .bend-handle { fill:#fff; stroke:#333; stroke-width:1.5px; r:6; cursor:grab; pointer-events:all; }
+  /* Cable visible: 5px; 6px con señal o selección */
+  .wire-path { fill:none; stroke:var(--wire); stroke-width:5; cursor:pointer; vector-effect:non-scaling-stroke; pointer-events:stroke; }
+  .wire-path.signal { stroke:var(--neon); stroke-width:6; filter: drop-shadow(0 0 8px rgba(0,255,102,0.25)); }
+  .wire-path.selected { stroke:#0078d7; stroke-width:6; }
+  .wire-path.ghost { stroke-dasharray:6 6; opacity:.75; }
+
+  /* Handles más grandes (r=9) para mover bends con el dedo */
+  .bend-handle { fill:#fff; stroke:#333; stroke-width:1.5px; r:9; cursor:grab; pointer-events:all; }
   .bend-handle.selected { stroke:#0078d7; stroke-width:2.5px; fill:#e6f3ff; }
 
-  /* Controles SIEMPRE visibles */
+  /* Controles */
   #controls {
     position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
     background:var(--sidebar); padding:8px 12px; border-radius:10px; border:2px solid #bdb089;
@@ -101,7 +111,7 @@
     background:#003366; color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:900; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,0.12);
   }
 
-  /* FAB móvil para añadir componentes */
+  /* FAB móvil (opcional) */
   #mobileBar { position:fixed; left:12px; bottom:12px; z-index:210; display:flex; gap:8px; align-items:center; }
   #mobileAdd { border:none; border-radius:999px; padding:12px 14px; font-weight:900; background:#0078d7; color:white; box-shadow:0 6px 0 rgba(0,0,0,0.12); cursor:pointer; }
 
@@ -159,7 +169,8 @@
 
     <div class="hint">
       - Pan con un dedo. Pellizca para zoom. <br>
-      - Toca un pin de salida (azul) y luego el pin de entrada para conectar. <br>
+      - Toca salida (pin azul) → entrada para conectar. <br>
+      - Mantén presionado un cable para agregar un nodo y acomodarlo. <br>
       - Toca el fondo para des-seleccionar.
     </div>
   </div>
@@ -182,7 +193,7 @@
   </div>
 
 <script>
-/* ===== PWA (rutas relativas) ===== */
+/* ===== PWA básico ===== */
 let deferredPrompt = null;
 const installBtn = document.getElementById('installBtn');
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -235,7 +246,7 @@ let scale=1, panX=0, panY=0, isPanning=false, panStartX=0, panStartY=0;
 let simTimer=null, SCAN_MS=60;
 let selectedNode=null, selectedConn=null, draggingBend=null;
 let currentToPlace=null;
-let selectedPinEl = null; // pin origen marcado en azul
+let selectedPinEl = null; // pin origen marcado
 
 /* Cliente -> workspace */
 function clientToWorkspace(clientX, clientY){
@@ -369,17 +380,14 @@ canvas.addEventListener('click', e=>{
   }
 });
 
-/* Selección y borrado de conexiones */
+/* Helpers selección/borrado conexiones */
 function removeConnection(conn){
   if(!conn) return;
   const idx = connections.indexOf(conn);
   if(idx >= 0) connections.splice(idx, 1);
   if(conn.path){ try{ conn.path.remove(); }catch(_){ } conn.path = null; }
   if(conn.hit){  try{ conn.hit.remove();  }catch(_){ } conn.hit  = null; }
-  if(conn.handles && conn.handles.length){
-    conn.handles.forEach(h=>{ try{ h.remove(); }catch(_){ } });
-    conn.handles = [];
-  }
+  if(conn.handles && conn.handles.length){ conn.handles.forEach(h=>{ try{ h.remove(); }catch(_){ } }); conn.handles = []; }
   if(selectedConn === conn) selectedConn = null;
   updateConnections();
 }
@@ -394,10 +402,7 @@ function selectConnection(conn){
 function selectNode(node){ if(simulation) return; clearSelection(); selectedNode=node; node.el.classList.add('selected'); }
 function clearSelection(){
   if(selectedNode){ selectedNode.el.classList.remove('selected'); selectedNode=null; }
-  if(selectedConn){
-    if(selectedConn.path) selectedConn.path.classList.remove('selected');
-    selectedConn.selected=false; selectedConn=null;
-  }
+  if(selectedConn){ if(selectedConn.path) selectedConn.path.classList.remove('selected'); selectedConn.selected=false; selectedConn=null; }
   if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
   pendingOutput = null; removeGhost();
   connections.forEach(c=>{ if(c.handles) c.handles.forEach(h=>h.remove()); c.handles=[]; });
@@ -501,7 +506,7 @@ function dragMove(el,node){
   }
 }
 
-/* Conexiones + línea guía + pines azules */
+/* Conexiones + ghost + pines azules */
 function enableConnections(node){
   const handler = el => {
     if(simulation) return;
@@ -599,7 +604,7 @@ function renderConnection(conn){
     }
   }
 
-  // HITBOX invisible grueso (tocar fácil)
+  // HITBOX invisible grueso (40px)
   const hit = document.createElementNS("http://www.w3.org/2000/svg","path");
   hit.setAttribute("d", d);
   hit.setAttribute("class", "wire-hit");
@@ -619,7 +624,7 @@ function renderConnection(conn){
   hit.addEventListener('touchstart', onSelect, {passive:true});
   hit.addEventListener('contextmenu', (ev)=>{ ev.preventDefault(); if(simulation) return; removeConnection(conn); });
 
-  // Long press para agregar bend sobre el path visible
+  // Long press (0.5s) para agregar bend (nodo)
   let longPressTimer=null;
   function onPathDown(ev){
     if(simulation) return;
@@ -645,7 +650,7 @@ function renderConnection(conn){
   path.addEventListener('mousedown', onPathDown);
   path.addEventListener('touchstart', onPathDown, {passive:false});
 
-  // Orden: primero hit, luego path (hit debajo)
+  // Orden: primero hit, luego path
   wiresSVG.appendChild(hit);
   wiresSVG.appendChild(path);
 
@@ -659,8 +664,9 @@ function orderBends(conn){
   const asc = s.x <= e.x; conn.bends.sort((a,b)=> asc?a.x-b.x:b.x-a.x);
 }
 function updatePinsVisual(conn, srcVal){
+  // ahora usamos clases para pintar la “línea” del pin (::before)
   try{
-    conn.from.style.background = srcVal===1 ? getComputedStyle(document.documentElement).getPropertyValue('--neon') || '#00ff66' : getComputedStyle(document.documentElement).getPropertyValue('--pin') || '#222';
+    conn.from.classList.toggle('signal-on', srcVal===1);
   }catch(e){}
   const srcNode = nodes.find(n=>n.output===conn.from);
   if(srcNode && srcNode.qIndicator){ srcNode.qIndicator.classList.toggle('on', srcVal===1); }
@@ -718,7 +724,8 @@ function scanLogic(){
   nodes.forEach(n=>{
     if(n.type === 'input' || n.type === 'output' || n.type === 'M'){
       n.el.classList.toggle('active', n.value === 1);
-      if(n.output) n.output.style.background = n.value===1 ? getComputedStyle(document.documentElement).getPropertyValue('--neon') || '#00ff66' : getComputedStyle(document.documentElement).getPropertyValue('--pin') || '#222';
+      // pintar pin de salida con señal
+      if(n.output) n.output.classList.toggle('signal-on', n.value===1);
     } else n.el.classList.remove('active');
     if(n.qIndicator) n.qIndicator.classList.toggle('on', n.value===1);
     n.el.classList.toggle('error', !!n.invalid);
@@ -739,7 +746,7 @@ document.getElementById('stop').addEventListener('click', ()=>{
     if(n.type==='input' || n.type==='output' || n.type==='M') n.el.classList.remove('active');
     if(n.qIndicator) n.qIndicator.classList.remove('on');
     n.invalid=false;
-    if(n.output) n.output.style.background = getComputedStyle(document.documentElement).getPropertyValue('--pin') || '#222';
+    if(n.output) n.output.classList.remove('signal-on');
   });
   updateConnections();
 });
@@ -763,7 +770,7 @@ window.addEventListener('resize', updateConnections);
 
 /* Iniciar */
 updateConnections();
-console.log("SIMUPASIR móvil listo (hitbox cable 28px, cable 3/4px, pines 16px).");
+console.log("SIMUPASIR móvil: cable 5/6px + hitbox 40px, pines visibles 24x7 con hitbox 28px, long-press para nodos.");
 </script>
 </body>
 </html>
