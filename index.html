@@ -32,6 +32,7 @@
   /* Sidebar */
   #sidebar { width:220px; background:var(--sidebar); padding:12px; border-right:3px solid #bdb089; display:flex; flex-direction:column; gap:10px; box-sizing:border-box; z-index:60; }
   .component { background:var(--node); border:2px solid #7a7a7a; border-radius:8px; padding:8px; text-align:center; cursor:grab; user-select:none; font-weight:700; box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
+  .component.selected{ outline:3px solid #0078d7; outline-offset:2px; }
 
   /* Canvas & workspace */
   #canvas { flex:1; background:#ffffff; position:relative; overflow:hidden; touch-action:none; }
@@ -76,8 +77,10 @@
   .bend-handle { fill: #fff; stroke: #333; stroke-width:1.5px; r:6; cursor:grab; pointer-events:all; }
   .bend-handle.selected { stroke: #0078d7; stroke-width:2.5px; fill:#e6f3ff; }
 
-  #controls { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:var(--sidebar); padding:8px 12px; border-radius:10px; border:2px solid #bdb089; display:flex; gap:10px; align-items:center; z-index:40; }
+  #controls { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:var(--sidebar); padding:8px 12px; border-radius:10px; border:2px solid #bdb089; display:flex; gap:10px; align-items:center; z-index:100; }
   #controls button { padding:8px 10px; border-radius:8px; border:1px solid #777; background:#fff; font-weight:700; cursor:pointer; }
+  /* Controles extra */
+  #zoomIn, #zoomOut { padding:6px 10px; }
 
   .q-indicator { width:18px; height:18px; border-radius:50%; background:#444; margin-top:8px; pointer-events:none; border:2px solid #222; }
   .q-indicator.on { background:var(--neon); box-shadow:0 0 8px rgba(0,255,102,0.45); }
@@ -94,7 +97,10 @@
     #installPWA { bottom: calc(12px + env(safe-area-inset-bottom)); }
   }
 
-  @media (max-width:720px){ #sidebar { display:none } }
+  @media (max-width:720px){
+    #sidebar { display:none }
+    #controls { top:12px; bottom:auto; left:50%; transform:translateX(-50%); }
+  }
 </style>
 </head>
 <body>
@@ -115,7 +121,7 @@
     <div style="height:8px"></div>
     <div class="component" draggable="true" data-type="sr">SR (Set/Reset)</div>
     <div style="flex:1"></div>
-    <div style="font-size:12px;color:#333">Arrastra al área. Conectar: clic salida → clic entrada. Selecciona y pulsa Supr para eliminar.</div>
+    <div style="font-size:12px;color:#333">Arrastra al área o toca un componente y luego toca el área. Conectar: salida → entrada. Supr para eliminar.</div>
   </div>
 
   <div id="canvas">
@@ -127,12 +133,14 @@
       <button id="simulate">Simular</button>
       <button id="stop">Detener</button>
       <button id="deleteBtn">Eliminar</button>
-      <div style="font-size:12px;color:#333;">(clic en I para alternar en simulación)</div>
+      <button id="zoomOut" title="Alejar">−</button>
+      <button id="zoomIn" title="Acercar">＋</button>
+      <div style="font-size:12px;color:#333;">(I: toca para alternar en simulación)</div>
     </div>
 
     <div class="hint">
       - Área de trabajo: 5000×5000 px (amplio). <br>
-      - Pan por defecto con un dedo (modo edición). <br>
+      - Pan con un dedo; pellizca para zoom (móvil). <br>
       - Seleccionar línea + Supr / botón Eliminar para borrar.
     </div>
   </div>
@@ -141,11 +149,15 @@
   <div id="brand">SIMUPASIR</div>
 
 <script>
-/* SIMUPASIR — R8 + PWA + FIX DnD */
+/* SIMUPASIR — R8 + PWA + Mobile Fix (DnD + Pinch + Coordenadas) */
 const canvas = document.getElementById("canvas");
 const workspace = document.getElementById("workspace");
 const wiresSVG = document.getElementById("wires");
 const components = document.querySelectorAll(".component");
+
+// Fallback: modo "tocar para insertar" si DnD no funciona (por iframes/preview)
+let paletteSelected = null;
+let paletteHintEl = null;
 
 let nodes = [];
 let connections = [];
@@ -165,24 +177,28 @@ function clientToWorkspace(clientX, clientY){
 }
 function terminalEdge(term){
   const rect = term.getBoundingClientRect();
-  const canvasRect = canvas.getBoundingClientRect();
+  const wsRect = workspace.getBoundingClientRect();
   const isInput = term.classList.contains('input');
   const isOutput = term.classList.contains('output');
-  let x;
-  if(isInput){ x = rect.left - canvasRect.left; }
-  else if(isOutput){ x = rect.right - canvasRect.left; }
-  else { x = rect.left - canvasRect.left + rect.width/2; }
-  const y = rect.top - canvasRect.top + rect.height/2;
-  return { x: x/scale, y: y/scale };
+  let xScreen;
+  if(isInput){ xScreen = rect.left; }
+  else if(isOutput){ xScreen = rect.right; }
+  else { xScreen = rect.left + rect.width/2; }
+  const yScreen = rect.top + rect.height/2;
+  // convertir a coords del workspace: restar origen del workspace en pantalla y dividir por escala
+  const x = (xScreen - wsRect.left) / scale;
+  const y = (yScreen - wsRect.top) / scale;
+  return { x, y };
 }
 
-/* Zoom */
+/* Zoom con rueda */
 canvas.addEventListener("wheel", e=>{
   e.preventDefault();
   const delta = e.deltaY > 0 ? -0.08 : 0.08;
-  scale = Math.min(Math.max(0.25, scale + delta), 3);
-  updateTransform();
+  setZoom(scale + delta);
 });
+
+function updateTransform(){ workspace.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`; }
 
 /* Pan mouse */
 workspace.addEventListener("mousedown", e=>{
@@ -195,13 +211,14 @@ workspace.addEventListener("mousedown", e=>{
   }
 });
 function doPan(e){ if(!isPanning) return; panX = e.clientX - panStartX; panY = e.clientY - panStartY; updateTransform(); }
-function endPan(e){ isPanning=false; document.removeEventListener("mousemove", doPan); document.removeEventListener("mouseup", endPan); }
-function updateTransform(){ workspace.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`; }
+function endPan(){ isPanning=false; document.removeEventListener("mousemove", doPan); document.removeEventListener("mouseup", endPan); }
 
-/* Pan touch */
+/* Pan & Pinch touch (móvil) */
 let touchPan = { active:false, id:null, startClientX:0, startClientY:0, startPanX:0, startPanY:0 };
+let pinch = { active:false, startDist:0, startScale:1, centerX:0, centerY:0 };
+
 workspace.addEventListener('touchstart', e=>{
-  if(e.touches.length === 1){
+  if(e.touches.length === 1 && !pinch.active){
     const t = e.touches[0];
     const target = document.elementFromPoint(t.clientX, t.clientY);
     if(target === workspace || target === wiresSVG){
@@ -214,9 +231,40 @@ workspace.addEventListener('touchstart', e=>{
       clearSelection();
       e.preventDefault();
     }
+  } else if (e.touches.length === 2) {
+    pinch.active = true;
+    const dx = e.touches[1].clientX - e.touches[0].clientX;
+    const dy = e.touches[1].clientY - e.touches[0].clientY;
+    pinch.startDist = Math.hypot(dx, dy);
+    pinch.startScale = scale;
+    // centro del gesto en coords del canvas
+    pinch.centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    pinch.centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    touchPan.active = false;
+    e.preventDefault();
   }
 }, { passive:false });
+
 workspace.addEventListener('touchmove', e=>{
+  if(pinch.active && e.touches.length >= 2){
+    const dx = e.touches[1].clientX - e.touches[0].clientX;
+    const dy = e.touches[1].clientY - e.touches[0].clientY;
+    const dist = Math.hypot(dx, dy);
+    if (pinch.startDist > 0){
+      let newScale = (pinch.startScale * dist / pinch.startDist);
+      newScale = Math.max(0.25, Math.min(3, newScale));
+      const rect = canvas.getBoundingClientRect();
+      const focusX = (pinch.centerX - rect.left - panX) / scale; // coords workspace antes
+      const focusY = (pinch.centerY - rect.top  - panY) / scale;
+      panX = pinch.centerX - rect.left - focusX * newScale;
+      panY = pinch.centerY - rect.top  - focusY * newScale;
+      scale = newScale;
+      updateTransform();
+      updateConnections();
+      e.preventDefault();
+    }
+    return;
+  }
   if(!touchPan.active) return;
   for(let i=0;i<e.touches.length;i++){
     const t = e.touches[i];
@@ -226,12 +274,15 @@ workspace.addEventListener('touchmove', e=>{
       panX = touchPan.startPanX + dx;
       panY = touchPan.startPanY + dy;
       updateTransform();
+      updateConnections();
       e.preventDefault();
       return;
     }
   }
 }, { passive:false });
+
 workspace.addEventListener('touchend', e=>{
+  if (pinch.active && e.touches.length < 2){ pinch.active = false; }
   if(!touchPan.active) return;
   let still=false;
   for(let i=0;i<e.touches.length;i++){
@@ -240,19 +291,44 @@ workspace.addEventListener('touchend', e=>{
   if(!still) { touchPan.active=false; touchPan.id=null; }
 });
 
-/* -------- FIX DnD: usar MIME estándar + propio -------- */
-components.forEach(comp => comp.addEventListener('dragstart', (e) => {
-  const t = comp.dataset.type;
-  e.dataTransfer.setData('application/x-simupasir', t);
-  e.dataTransfer.setData('text/plain', t);
-  e.dataTransfer.effectAllowed = 'copy';
-}));
-
-canvas.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'copy';
+/* DnD + Fallback de paleta */
+components.forEach(comp => {
+  // DnD normal
+  comp.addEventListener('dragstart', (e) => {
+    const t = comp.dataset.type;
+    e.dataTransfer.setData('application/x-simupasir', t);
+    e.dataTransfer.setData('text/plain', t);
+    e.dataTransfer.effectAllowed = 'copy';
+  });
+  // Fallback táctil/click: seleccionar del panel
+  comp.addEventListener('click', () => {
+    paletteSelected = comp.dataset.type;
+    components.forEach(c=>c.classList.remove('selected'));
+    comp.classList.add('selected');
+    showPaletteHint(`Listo: ${paletteSelected.toUpperCase()} — toca en el área para colocar`);
+  });
 });
 
+function showPaletteHint(text){
+  if(!paletteHintEl){
+    paletteHintEl = document.createElement('div');
+    paletteHintEl.id = 'paletteHint';
+    paletteHintEl.style.position='fixed';
+    paletteHintEl.style.left='12px';
+    paletteHintEl.style.top='12px';
+    paletteHintEl.style.zIndex='110';
+    paletteHintEl.style.padding='8px 10px';
+    paletteHintEl.style.border='2px solid #777';
+    paletteHintEl.style.borderRadius='10px';
+    paletteHintEl.style.background='#fff';
+    paletteHintEl.style.fontWeight='800';
+    document.body.appendChild(paletteHintEl);
+  }
+  paletteHintEl.textContent = text;
+}
+function hidePaletteHint(){ if(paletteHintEl){ paletteHintEl.remove(); paletteHintEl=null; } }
+
+canvas.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
 canvas.addEventListener('drop', (e) => {
   e.preventDefault();
   if (simulation) return;
@@ -260,6 +336,27 @@ canvas.addEventListener('drop', (e) => {
   if (!type) { console.warn('No llegó el tipo de componente en el drop.'); return; }
   const pos = clientToWorkspace(e.clientX, e.clientY);
   createNode(type, pos.x, pos.y);
+});
+
+// Fallback de inserción por toque/click
+function placeFromPaletteAtClient(clientX, clientY){
+  if(!paletteSelected) return false;
+  const pos = clientToWorkspace(clientX, clientY);
+  createNode(paletteSelected, pos.x, pos.y);
+  return true;
+}
+canvas.addEventListener('click', (e)=>{
+  if(e.target === workspace || e.target === wiresSVG){
+    placeFromPaletteAtClient(e.clientX, e.clientY);
+  }
+});
+// Tecla ESC para salir del modo paleta
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){
+    paletteSelected = null;
+    components.forEach(c=>c.classList.remove('selected'));
+    hidePaletteHint();
+  }
 });
 
 /* selección */
@@ -274,7 +371,6 @@ function hideAllBendHandles(){ connections.forEach(conn=>{ if(conn.handles){ con
 
 /* crear nodo */
 function createNode(type, x, y){
-  // Blindaje: si no llega el type por DnD, no rompemos
   if (!type) type = 'and';
   const div = document.createElement('div'); div.className='node'; div.style.left = x + 'px'; div.style.top = y + 'px';
   let name = (type || 'G').toUpperCase();
@@ -506,7 +602,7 @@ function onBendMove(ev){
   conn.bends[idx].y = pos.y;
   renderConnection(conn);
 }
-function onBendUp(ev){
+function onBendUp(){
   if(!draggingBend) return;
   document.removeEventListener('mousemove', onBendMove);
   document.removeEventListener('mouseup', onBendUp);
@@ -619,6 +715,27 @@ document.getElementById('stop').addEventListener('click', ()=>{
   nodes.forEach(n=>{ n.value=0; if(n.type==='input' || n.type==='output' || n.type==='M') n.el.classList.remove('active'); if(n.qIndicator) n.qIndicator.classList.remove('on'); n.invalid=false; if(n.output) n.output.style.background = getComputedStyle(document.documentElement).getPropertyValue('--pin') || '#222'; });
   updateConnections();
 });
+
+// Zoom botones
+const btnZoomIn = document.getElementById('zoomIn');
+const btnZoomOut = document.getElementById('zoomOut');
+btnZoomIn.addEventListener('click', ()=>{ setZoom(scale + 0.12); });
+btnZoomOut.addEventListener('click', ()=>{ setZoom(scale - 0.12); });
+function setZoom(next){
+  const rect = canvas.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top + rect.height/2;
+  const focusX = (cx - rect.left - panX) / scale;
+  const focusY = (cy - rect.top - panY) / scale;
+  let newScale = Math.max(0.25, Math.min(3, next));
+  panX = cx - rect.left - focusX * newScale;
+  panY = cy - rect.top  - focusY * newScale;
+  scale = newScale;
+  updateTransform();
+  updateConnections();
+}
+
+// Eliminar
 document.getElementById('deleteBtn').addEventListener('click', ()=>{
   if(simulation) return;
   if(selectedNode){ removeNode(selectedNode); return; }
@@ -652,7 +769,9 @@ workspace.addEventListener('click', (e)=>{
 });
 
 updateConnections();
-console.log("SIMUPASIR R8 listo — PWA + Fix DnD.");
+console.log("SIMUPASIR R8 listo — PWA + Fix DnD + Pinch Zoom.");
+// Redibujar al rotar/cambiar tamaño (móviles)
+window.addEventListener('resize', ()=>{ updateConnections(); });
 
 /* ------------ PWA: registro del Service Worker ------------ */
 if ('serviceWorker' in navigator) {
@@ -695,4 +814,3 @@ installBtn.addEventListener('click', async () => {
 </script>
 </body>
 </html>
-
