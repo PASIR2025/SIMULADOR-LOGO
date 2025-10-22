@@ -21,7 +21,7 @@
     --wire:#000;
     --neon:#00ff66;
     --accent:#444;
-    --pin-long:48px;
+    --pin-long:56px;            /* ↑ antes 48px: pines un poco más largos para fácil toque */
     --workspace-size:5000px;
   }
 
@@ -47,8 +47,8 @@
   .label { font-weight:900; margin-bottom:6px; pointer-events:none; font-size:14px; color:#222; }
   .selected { box-shadow: 0 10px 18px rgba(0,0,0,0.12); border-color:#0058a3!important; transform: translateY(-2px); }
 
-  /* Pines */
-  .terminal { height:10px; background:var(--pin); position:absolute; cursor:pointer; border-radius:5px; box-shadow:0 1px 0 rgba(0,0,0,0.15); }
+  /* Pines (↑ alto 16px para mejorar toque) */
+  .terminal { height:16px; background:var(--pin); position:absolute; cursor:pointer; border-radius:6px; box-shadow:0 1px 0 rgba(0,0,0,0.15); }
   .terminal.input { width:var(--pin-long); left:calc(-1 * var(--pin-long)); }
   .terminal.output { width:var(--pin-long); right:calc(-1 * var(--pin-long)); top:50%; transform:translateY(-50%); }
   .term-label { position:absolute; left:calc(-1 * var(--pin-long) - 36px); width:40px; text-align:right; font-size:12px; color:#222; user-select:none; }
@@ -66,14 +66,15 @@
   /* Cables */
   #wires { position:absolute; top:0; left:0; width:var(--workspace-size); height:var(--workspace-size); pointer-events:auto; z-index:6; }
 
-  /* Hitbox invisible grueso para tocar fácil */
+  /* Hitbox invisible más grueso (↑ 28px) para tocar fácil */
   .wire-hit{
-    fill:none; stroke:#000; stroke-width:18; stroke-opacity:0;
+    fill:none; stroke:#000; stroke-width:28; stroke-opacity:0;
     vector-effect:non-scaling-stroke; pointer-events:stroke; stroke-linecap:round;
   }
-  .wire-path { fill:none; stroke:var(--wire); stroke-width:2; cursor:pointer; vector-effect:non-scaling-stroke; pointer-events:stroke; }
-  .wire-path.signal { stroke:var(--neon); stroke-width:3; filter: drop-shadow(0 0 8px rgba(0,255,102,0.25)); }
-  .wire-path.selected { stroke:#0078d7; stroke-width:3; } /* Azul seleccionado */
+  /* Cable un poco más grueso visualmente (↑ normal 3px, señal 4px) */
+  .wire-path { fill:none; stroke:var(--wire); stroke-width:3; cursor:pointer; vector-effect:non-scaling-stroke; pointer-events:stroke; }
+  .wire-path.signal { stroke:var(--neon); stroke-width:4; filter: drop-shadow(0 0 8px rgba(0,255,102,0.25)); }
+  .wire-path.selected { stroke:#0078d7; stroke-width:4; } /* Azul cuando está seleccionado */
   .wire-path.ghost { stroke-dasharray:6 6; opacity:.7; }
 
   .bend-handle { fill:#fff; stroke:#333; stroke-width:1.5px; r:6; cursor:grab; pointer-events:all; }
@@ -101,21 +102,12 @@
   }
 
   /* FAB móvil para añadir componentes */
-  #mobileBar {
-    position:fixed; left:12px; bottom:12px; z-index:210; display:flex; gap:8px; align-items:center;
-  }
-  #mobileAdd {
-    border:none; border-radius:999px; padding:12px 14px; font-weight:900; background:#0078d7; color:white; box-shadow:0 6px 0 rgba(0,0,0,0.12); cursor:pointer;
-  }
+  #mobileBar { position:fixed; left:12px; bottom:12px; z-index:210; display:flex; gap:8px; align-items:center; }
+  #mobileAdd { border:none; border-radius:999px; padding:12px 14px; font-weight:900; background:#0078d7; color:white; box-shadow:0 6px 0 rgba(0,0,0,0.12); cursor:pointer; }
 
   /* Menú de componentes (móvil) */
-  #picker {
-    position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:flex-end; z-index:220;
-  }
-  #picker .sheet{
-    background:#fff; width:100%; border-radius:16px 16px 0 0; padding:12px; max-height:60vh; overflow:auto;
-    box-shadow:0 -10px 30px rgba(0,0,0,.2);
-  }
+  #picker { position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:flex-end; z-index:220; }
+  #picker .sheet{ background:#fff; width:100%; border-radius:16px 16px 0 0; padding:12px; max-height:60vh; overflow:auto; box-shadow:0 -10px 30px rgba(0,0,0,.2); }
   #picker h3 { margin:6px 0 10px; font-size:16px; }
   #picker .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
   #picker .item { background:#fff8dc; border:2px solid #7a7a7a; border-radius:10px; padding:10px; font-weight:900; text-align:center; cursor:pointer; }
@@ -126,9 +118,7 @@
     #mobileBar { bottom: calc(12px + env(safe-area-inset-bottom)); }
     #installBtn { bottom: calc(80px + env(safe-area-inset-bottom)); }
   }
-  @media (max-width:720px){
-    #sidebar { display:none; }
-  }
+  @media (max-width:720px){ #sidebar { display:none; } }
 </style>
 </head>
 <body>
@@ -149,7 +139,7 @@
     <div style="height:8px"></div>
     <div class="component" draggable="true" data-type="sr">SR (Set/Reset)</div>
     <div style="flex:1"></div>
-    <div style="font-size:12px;color:#333">Arrastra (PC) o usa el botón “＋ Añadir” (móvil). Conectar: salida → entrada.</div>
+    <div style="font-size:12px;color:#333">Arrastra (PC) o usa “＋ Añadir” (móvil). Conectar: salida → entrada.</div>
   </div>
 
   <div id="canvas">
@@ -356,9 +346,7 @@ components.forEach(comp=>{
     e.dataTransfer.setData("text/plain", comp.dataset.type);
     e.dataTransfer.effectAllowed="copy";
   });
-  comp.addEventListener("click", ()=>{
-    currentToPlace = comp.dataset.type;
-  });
+  comp.addEventListener("click", ()=>{ currentToPlace = comp.dataset.type; });
 });
 canvas.addEventListener("dragover", e=>{ e.preventDefault(); e.dataTransfer.dropEffect='copy'; });
 canvas.addEventListener("drop", e=>{
@@ -376,7 +364,7 @@ canvas.addEventListener('click', e=>{
       const pos = clientToWorkspace(e.clientX, e.clientY);
       createNode(currentToPlace, pos.x, pos.y);
     } else {
-      clearSelection(); // des-seleccionar al tocar espacio en blanco
+      clearSelection();
     }
   }
 });
@@ -410,7 +398,6 @@ function clearSelection(){
     if(selectedConn.path) selectedConn.path.classList.remove('selected');
     selectedConn.selected=false; selectedConn=null;
   }
-  // limpiar pin seleccionado y ghost si existieran
   if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
   pendingOutput = null; removeGhost();
   connections.forEach(c=>{ if(c.handles) c.handles.forEach(h=>h.remove()); c.handles=[]; });
@@ -776,7 +763,7 @@ window.addEventListener('resize', updateConnections);
 
 /* Iniciar */
 updateConnections();
-console.log("SIMUPASIR móvil listo.");
+console.log("SIMUPASIR móvil listo (hitbox cable 28px, cable 3/4px, pines 16px).");
 </script>
 </body>
 </html>
