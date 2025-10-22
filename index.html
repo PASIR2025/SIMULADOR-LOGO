@@ -53,11 +53,27 @@
   .terminal.output { width:var(--pin-long); right:calc(-1 * var(--pin-long)); top:50%; transform:translateY(-50%); }
   .term-label { position:absolute; left:calc(-1 * var(--pin-long) - 36px); width:40px; text-align:right; font-size:12px; color:#222; user-select:none; }
 
+  /* Pines seleccionados y destino */
+  .terminal.pin-selected{
+    background:#0078d7 !important;
+    box-shadow:0 0 0 3px rgba(0,120,215,.25);
+  }
+  .terminal.pin-target{
+    outline:2px solid #0078d7;
+    outline-offset:2px;
+  }
+
   /* Cables */
   #wires { position:absolute; top:0; left:0; width:var(--workspace-size); height:var(--workspace-size); pointer-events:auto; z-index:6; }
+
+  /* Hitbox invisible grueso para tocar fácil */
+  .wire-hit{
+    fill:none; stroke:#000; stroke-width:18; stroke-opacity:0;
+    vector-effect:non-scaling-stroke; pointer-events:stroke; stroke-linecap:round;
+  }
   .wire-path { fill:none; stroke:var(--wire); stroke-width:2; cursor:pointer; vector-effect:non-scaling-stroke; pointer-events:stroke; }
   .wire-path.signal { stroke:var(--neon); stroke-width:3; filter: drop-shadow(0 0 8px rgba(0,255,102,0.25)); }
-  .wire-path.selected { stroke:#0078d7; stroke-width:3; } /* Azul cuando está seleccionado */
+  .wire-path.selected { stroke:#0078d7; stroke-width:3; } /* Azul seleccionado */
   .wire-path.ghost { stroke-dasharray:6 6; opacity:.7; }
 
   .bend-handle { fill:#fff; stroke:#333; stroke-width:1.5px; r:6; cursor:grab; pointer-events:all; }
@@ -153,7 +169,8 @@
 
     <div class="hint">
       - Pan con un dedo. Pellizca para zoom. <br>
-      - Usa “＋ Añadir” para insertar bloques en móvil.
+      - Toca un pin de salida (azul) y luego el pin de entrada para conectar. <br>
+      - Toca el fondo para des-seleccionar.
     </div>
   </div>
 
@@ -228,6 +245,7 @@ let scale=1, panX=0, panY=0, isPanning=false, panStartX=0, panStartY=0;
 let simTimer=null, SCAN_MS=60;
 let selectedNode=null, selectedConn=null, draggingBend=null;
 let currentToPlace=null;
+let selectedPinEl = null; // pin origen marcado en azul
 
 /* Cliente -> workspace */
 function clientToWorkspace(clientX, clientY){
@@ -269,7 +287,7 @@ function updateTransform(){ workspace.style.transform = `translate(${panX}px,${p
 /* Pan mouse */
 workspace.addEventListener("mousedown", e=>{
   if(e.target === workspace){
-    if(e.button === 0) clearSelection();
+    if(e.button === 0) clearSelection();   // des-seleccionar al tocar fondo
     isPanning = true;
     panStartX = e.clientX - panX; panStartY = e.clientY - panY;
     document.addEventListener("mousemove", doPan);
@@ -288,7 +306,7 @@ workspace.addEventListener('touchstart', e=>{
     const target = document.elementFromPoint(t.clientX, t.clientY);
     if(target===workspace || target===wiresSVG){
       touchPan={active:true,id:t.identifier,startClientX:t.clientX,startClientY:t.clientY,startPanX:panX,startPanY:panY};
-      clearSelection(); e.preventDefault();
+      clearSelection(); e.preventDefault(); // des-seleccionar al tocar fondo
     }
   } else if (e.touches.length===2) {
     pinch.active = true;
@@ -350,19 +368,26 @@ canvas.addEventListener("drop", e=>{
   const pos = clientToWorkspace(e.clientX, e.clientY);
   createNode(type, pos.x, pos.y);
 });
+
+/* Click en blanco: colocar o des-seleccionar */
 canvas.addEventListener('click', e=>{
-  if((e.target===workspace || e.target===wiresSVG) && currentToPlace){
-    const pos = clientToWorkspace(e.clientX, e.clientY);
-    createNode(currentToPlace, pos.x, pos.y);
+  if(e.target===workspace || e.target===wiresSVG){
+    if(currentToPlace){
+      const pos = clientToWorkspace(e.clientX, e.clientY);
+      createNode(currentToPlace, pos.x, pos.y);
+    } else {
+      clearSelection(); // des-seleccionar al tocar espacio en blanco
+    }
   }
 });
 
-/* Selección, borrado de conexiones */
+/* Selección y borrado de conexiones */
 function removeConnection(conn){
   if(!conn) return;
   const idx = connections.indexOf(conn);
   if(idx >= 0) connections.splice(idx, 1);
   if(conn.path){ try{ conn.path.remove(); }catch(_){ } conn.path = null; }
+  if(conn.hit){  try{ conn.hit.remove();  }catch(_){ } conn.hit  = null; }
   if(conn.handles && conn.handles.length){
     conn.handles.forEach(h=>{ try{ h.remove(); }catch(_){ } });
     conn.handles = [];
@@ -385,6 +410,9 @@ function clearSelection(){
     if(selectedConn.path) selectedConn.path.classList.remove('selected');
     selectedConn.selected=false; selectedConn=null;
   }
+  // limpiar pin seleccionado y ghost si existieran
+  if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
+  pendingOutput = null; removeGhost();
   connections.forEach(c=>{ if(c.handles) c.handles.forEach(h=>h.remove()); c.handles=[]; });
 }
 
@@ -486,23 +514,42 @@ function dragMove(el,node){
   }
 }
 
-/* Conexiones + línea guía */
+/* Conexiones + línea guía + pines azules */
 function enableConnections(node){
   const handler = el => {
     if(simulation) return;
+
     if(el.classList.contains('output')){
-      pendingOutput = el; showGhost(el); return;
+      if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); }
+      selectedPinEl = el;
+      el.classList.add('pin-selected');     // pin origen en azul
+      pendingOutput = el;
+      showGhost(el);
+      return;
     }
+
     if(el.classList.contains('input')){
+      el.classList.add('pin-target');
+      setTimeout(()=>el.classList.remove('pin-target'), 300);
+
       if(!pendingOutput) return;
-      if(pendingOutput === el){ pendingOutput = null; removeGhost(); return; }
+      if(pendingOutput === el){ // cancelar si tocaste el mismo
+        removeGhost();
+        if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
+        pendingOutput = null;
+        return;
+      }
       createConnection(pendingOutput, el);
-      pendingOutput = null; removeGhost();
+      removeGhost();
+      if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
+      pendingOutput = null;
     }
   };
   if(node.output) node.output.addEventListener('click', ()=>handler(node.output));
   node.inputs.forEach(inp => inp.addEventListener('click', ()=>handler(inp)));
 }
+
+/* Ghost line */
 function showGhost(fromTerm){
   removeGhost();
   const s = terminalEdge(fromTerm);
@@ -537,15 +584,16 @@ function updateGhostPath(path,sx,sy,ex,ey){
   path.setAttribute('d',`M${sx},${sy} L${midX},${sy} L${midX},${ey} L${ex},${ey}`);
 }
 
-/* Crear y dibujar conexión */
+/* Crear y dibujar conexión (con hitbox) */
 function createConnection(fromTerm, toTerm){
   if(simulation) return;
   if(connections.find(c => c.from === fromTerm && c.to === toTerm)) return;
-  const conn = { from: fromTerm, to: toTerm, path: null, bends: [], handles: [], selected: false };
+  const conn = { from: fromTerm, to: toTerm, path: null, hit:null, bends: [], handles: [], selected: false };
   connections.push(conn); renderConnection(conn);
 }
 function renderConnection(conn){
   if(conn.path){ conn.path.remove(); conn.path=null; }
+  if(conn.hit){  conn.hit.remove();  conn.hit=null;  }
   if(conn.handles){ conn.handles.forEach(h=>h.remove()); conn.handles=[]; }
 
   const s = terminalEdge(conn.from);
@@ -564,22 +612,57 @@ function renderConnection(conn){
     }
   }
 
+  // HITBOX invisible grueso (tocar fácil)
+  const hit = document.createElementNS("http://www.w3.org/2000/svg","path");
+  hit.setAttribute("d", d);
+  hit.setAttribute("class", "wire-hit");
+
+  // Path visible
   const path = document.createElementNS("http://www.w3.org/2000/svg","path");
   path.setAttribute("d", d);
   path.setAttribute("class", "wire-path");
-  if (conn.selected) path.classList.add('selected'); // mantener azul si estaba seleccionado
+  if (conn.selected) path.classList.add('selected');
 
   const srcVal = getSourceNodeValue(conn);
   if(srcVal === 1) path.classList.add('signal'); else path.classList.remove('signal');
 
-  // Selección
-  path.addEventListener('click', (ev)=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); });
-  path.addEventListener('touchstart', (ev)=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); }, { passive:true });
+  // Selección/borrado sobre la hitbox
+  const onSelect = (ev)=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); };
+  hit.addEventListener('click', onSelect);
+  hit.addEventListener('touchstart', onSelect, {passive:true});
+  hit.addEventListener('contextmenu', (ev)=>{ ev.preventDefault(); if(simulation) return; removeConnection(conn); });
 
-  // Borrar con click derecho (desktop)
-  path.addEventListener('contextmenu', (ev)=>{ ev.preventDefault(); if(simulation) return; removeConnection(conn); });
+  // Long press para agregar bend sobre el path visible
+  let longPressTimer=null;
+  function onPathDown(ev){
+    if(simulation) return;
+    if(ev.type==='mousedown' && ev.button!==0) return;
+    ev.stopPropagation();
+    longPressTimer=setTimeout(()=>{
+      const clientX = (ev.type==='mousedown') ? ev.clientX : (ev.touches?.[0]?.clientX ?? ev.clientX);
+      const clientY = (ev.type==='mousedown') ? ev.clientY : (ev.touches?.[0]?.clientY ?? ev.clientY);
+      const pos = clientToWorkspace(clientX, clientY);
+      conn.bends.push({ x: pos.x, y: pos.y });
+      orderBends(conn);
+      renderConnection(conn);
+      selectConnection(conn);
+    }, 500);
+    document.addEventListener('mouseup', onPathUpOnce);
+    document.addEventListener('touchend', onPathUpOnce, {passive:true});
+  }
+  function onPathUpOnce(){
+    if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; }
+    document.removeEventListener('mouseup', onPathUpOnce);
+    document.removeEventListener('touchend', onPathUpOnce);
+  }
+  path.addEventListener('mousedown', onPathDown);
+  path.addEventListener('touchstart', onPathDown, {passive:false});
 
+  // Orden: primero hit, luego path (hit debajo)
+  wiresSVG.appendChild(hit);
   wiresSVG.appendChild(path);
+
+  conn.hit  = hit;
   conn.path = path;
 
   updatePinsVisual(conn, srcVal);
