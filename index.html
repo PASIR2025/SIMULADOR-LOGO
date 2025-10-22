@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>SIMUPASIR — 5000x5000 — Móvil</title>
+<title>SIMUPASIR — móvil</title>
 
-<!-- PWA -->
-<link rel="manifest" href="/manifest.json">
+<!-- PWA (rutas relativas para GitHub Pages) -->
+<link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#003366">
-<link rel="icon" href="/icons/icon-192.png">
+<link rel="icon" href="./icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
 
 <style>
   :root{
@@ -28,7 +28,7 @@
   html,body { height:100%; }
   body { margin:0; font-family: Inter, Arial, Helvetica, sans-serif; display:flex; height:100vh; overflow:hidden; background:#fff; }
 
-  /* Sidebar */
+  /* Sidebar (se oculta en móvil, pero ahora hay un selector táctil) */
   #sidebar { width:220px; background:var(--sidebar); padding:12px; border-right:3px solid #bdb089; display:flex; flex-direction:column; gap:10px; box-sizing:border-box; z-index:60; }
   .component { background:var(--node); border:2px solid #7a7a7a; border-radius:8px; padding:8px; text-align:center; cursor:grab; user-select:none; font-weight:700; box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
   .component.selected{ outline:3px solid #0078d7; outline-offset:2px; }
@@ -48,7 +48,7 @@
   .selected { box-shadow: 0 10px 18px rgba(0,0,0,0.12); border-color:#0058a3!important; transform: translateY(-2px); }
 
   /* Pines */
-  .terminal { height:10px; background:var(--pin); position:absolute; cursor:pointer; border-radius:5px; box-shadow: 0 1px 0 rgba(0,0,0,0.15); }
+  .terminal { height:10px; background:var(--pin); position:absolute; cursor:pointer; border-radius:5px; box-shadow:0 1px 0 rgba(0,0,0,0.15); }
   .terminal.input { width:var(--pin-long); left:calc(-1 * var(--pin-long)); }
   .terminal.output { width:var(--pin-long); right:calc(-1 * var(--pin-long)); top:50%; transform:translateY(-50%); }
   .term-label { position:absolute; left:calc(-1 * var(--pin-long) - 36px); width:40px; text-align:right; font-size:12px; color:#222; user-select:none; }
@@ -65,9 +65,9 @@
 
   /* Controles */
   #controls {
-    position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
+    position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
     background:var(--sidebar); padding:8px 12px; border-radius:10px; border:2px solid #bdb089;
-    display:flex; gap:10px; align-items:center; z-index:100;
+    display:flex; gap:10px; align-items:center; z-index:200; /* alto para que NO quede detrás de nada */
   }
   #controls button { padding:8px 10px; border-radius:8px; border:1px solid #777; background:#fff; font-weight:700; cursor:pointer; }
   #zoomIn, #zoomOut { padding:6px 10px; }
@@ -75,22 +75,43 @@
   .q-indicator { width:18px; height:18px; border-radius:50%; background:#444; margin-top:8px; pointer-events:none; border:2px solid #222; }
   .q-indicator.on { background:var(--neon); box-shadow:0 0 8px rgba(0,255,102,0.45); }
 
-  .hint { position:absolute; right:12px; top:12px; background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; font-size:13px; color:#222; width:320px; z-index:40; }
+  .hint { position:absolute; right:12px; top:12px; background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; font-size:13px; color:#222; width:320px; z-index:5; pointer-events:none; }
   #brand { position:fixed; right:12px; bottom:12px; background:rgba(0,0,0,0.06); padding:8px 12px; border-radius:8px; font-weight:900; letter-spacing:1px; z-index:60; box-shadow: 0 6px 0 rgba(0,0,0,0.04); }
 
   /* Botón instalar */
   #installBtn {
-    display:none; position:fixed; right:12px; bottom:80px; z-index:110;
+    display:none; position:fixed; right:12px; bottom:80px; z-index:210;
     background:#003366; color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:900; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,0.12);
   }
 
+  /* FAB móvil para añadir componentes */
+  #mobileBar {
+    position:fixed; left:12px; bottom:12px; z-index:210; display:flex; gap:8px; align-items:center;
+  }
+  #mobileAdd {
+    border:none; border-radius:999px; padding:12px 14px; font-weight:900; background:#0078d7; color:white; box-shadow:0 6px 0 rgba(0,0,0,0.12); cursor:pointer;
+  }
+
+  /* Menú de componentes (móvil) */
+  #picker {
+    position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:flex-end; z-index:220;
+  }
+  #picker .sheet{
+    background:#fff; width:100%; border-radius:16px 16px 0 0; padding:12px; max-height:60vh; overflow:auto;
+    box-shadow:0 -10px 30px rgba(0,0,0,.2);
+  }
+  #picker h3 { margin:6px 0 10px; font-size:16px; }
+  #picker .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  #picker .item { background:#fff8dc; border:2px solid #7a7a7a; border-radius:10px; padding:10px; font-weight:900; text-align:center; cursor:pointer; }
+  #picker .close { margin-top:10px; width:100%; padding:10px; border-radius:10px; border:1px solid #aaa; background:#f6f6f6; font-weight:800; }
+
   @supports(padding:max(0px)){
     #controls { bottom: calc(12px + env(safe-area-inset-bottom)); }
+    #mobileBar { bottom: calc(12px + env(safe-area-inset-bottom)); }
     #installBtn { bottom: calc(80px + env(safe-area-inset-bottom)); }
   }
   @media (max-width:720px){
-    #sidebar { display:none }
-    #controls { top:12px; bottom:auto; left:50%; transform:translateX(-50%); }
+    #sidebar { display:none; }
   }
 </style>
 </head>
@@ -112,7 +133,7 @@
     <div style="height:8px"></div>
     <div class="component" draggable="true" data-type="sr">SR (Set/Reset)</div>
     <div style="flex:1"></div>
-    <div style="font-size:12px;color:#333">Arrastra o toca un componente y luego toca el área. Conectar: salida → entrada. Supr para eliminar.</div>
+    <div style="font-size:12px;color:#333">Arrastra (PC) o usa el botón “＋ Añadir” (móvil). Conectar: salida → entrada.</div>
   </div>
 
   <div id="canvas">
@@ -120,6 +141,7 @@
       <svg id="wires" xmlns="http://www.w3.org/2000/svg" width="5000" height="5000" viewBox="0 0 5000 5000" preserveAspectRatio="none"></svg>
     </div>
 
+    <!-- Controles SIEMPRE visibles -->
     <div id="controls">
       <button id="simulate">Simular</button>
       <button id="stop">Detener</button>
@@ -131,17 +153,29 @@
 
     <div class="hint">
       - Pan con un dedo. Pellizca para zoom. <br>
-      - Al conectar, verás una línea guía desde la salida hasta tu dedo.
+      - Usa “＋ Añadir” para insertar bloques en móvil.
     </div>
   </div>
 
   <div id="brand">SIMUPASIR</div>
-
-  <!-- Install button -->
   <button id="installBtn">Instalar SIMUPASIR</button>
 
+  <!-- FAB móvil -->
+  <div id="mobileBar">
+    <button id="mobileAdd">＋ Añadir</button>
+  </div>
+
+  <!-- Selector táctil de componentes -->
+  <div id="picker" aria-hidden="true">
+    <div class="sheet">
+      <h3>Agregar componente</h3>
+      <div class="grid" id="pickerGrid"></div>
+      <button class="close" id="pickerClose">Cerrar</button>
+    </div>
+  </div>
+
 <script>
-/* ===== PWA: Install prompt & Service Worker ===== */
+/* ===== PWA (rutas relativas) ===== */
 let deferredPrompt = null;
 const installBtn = document.getElementById('installBtn');
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -154,17 +188,38 @@ installBtn.addEventListener('click', async () => {
 });
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
+    navigator.serviceWorker.register('./service-worker.js')
       .then(reg => console.log('SW scope:', reg.scope))
       .catch(err => console.error('SW error:', err));
   });
 }
 
-/* ===== SIMUPASIR – móvil ===== */
+/* ===== SIMUPASIR ===== */
 const canvas = document.getElementById("canvas");
 const workspace = document.getElementById("workspace");
 const wiresSVG = document.getElementById("wires");
 const components = document.querySelectorAll(".component");
+const mobileAddBtn = document.getElementById('mobileAdd');
+const picker = document.getElementById('picker');
+const pickerGrid = document.getElementById('pickerGrid');
+const pickerClose = document.getElementById('pickerClose');
+
+const MOBILE_ITEMS = [
+  ['input','Entrada (I)'],
+  ['output','Salida (Q)'],
+  ['M','Memoria (M)'],
+  ['and','AND'],['or','OR'],['not','NOT'],
+  ['nand','NAND'],['nor','NOR'],['xor','XOR'],['xnor','XNOR'],
+  ['sr','SR (Set/Reset)']
+];
+MOBILE_ITEMS.forEach(([type,label])=>{
+  const b=document.createElement('div');
+  b.className='item'; b.dataset.type=type; b.textContent=label;
+  b.onclick=()=>{ currentToPlace=type; picker.style.display='none'; picker.setAttribute('aria-hidden','true'); };
+  pickerGrid.appendChild(b);
+});
+pickerClose.onclick=()=>{ picker.style.display='none'; picker.setAttribute('aria-hidden','true'); };
+mobileAddBtn.onclick=()=>{ picker.style.display='flex'; picker.setAttribute('aria-hidden','false'); };
 
 let nodes = [], connections = [], pendingOutput = null, pendingGhost = null;
 let simulation = false;
@@ -173,14 +228,15 @@ let scale=1, panX=0, panY=0, isPanning=false, panStartX=0, panStartY=0;
 let simTimer=null, SCAN_MS=60;
 let selectedNode=null, selectedConn=null, draggingBend=null;
 let paletteSelected=null, paletteHintEl=null;
+let currentToPlace=null; // ← tipo elegido desde el picker o sidebar
 
-/* Cliente -> workspace (considera pan/zoom) */
+/* Cliente -> workspace */
 function clientToWorkspace(clientX, clientY){
   const rect = canvas.getBoundingClientRect();
   return { x: (clientX - rect.left - panX) / scale, y: (clientY - rect.top - panY) / scale };
 }
 
-/* EXTREMO de pin en coordenadas del workspace (FIX: usar rect del workspace) */
+/* Extremo del pin (usar workspace rect, FIX móvil) */
 function terminalEdge(term){
   const rect = term.getBoundingClientRect();
   const wsRect = workspace.getBoundingClientRect();
@@ -191,7 +247,7 @@ function terminalEdge(term){
   return { x: (xScreen - wsRect.left) / scale, y: (yScreen - wsRect.top) / scale };
 }
 
-/* Zoom rueda + botones */
+/* Zoom (rueda + botones) */
 canvas.addEventListener("wheel", e=>{
   e.preventDefault();
   setZoom(scale + (e.deltaY > 0 ? -0.08 : 0.08));
@@ -276,7 +332,7 @@ workspace.addEventListener('touchend', e=>{
   if(!still) touchPan.active=false;
 });
 
-/* DnD + Paleta tap-para-insertar */
+/* DnD (PC) + Tap-para-insertar (móvil) */
 components.forEach(comp=>{
   comp.addEventListener("dragstart", e=>{
     e.dataTransfer.setData("application/x-simupasir", comp.dataset.type);
@@ -284,21 +340,9 @@ components.forEach(comp=>{
     e.dataTransfer.effectAllowed="copy";
   });
   comp.addEventListener("click", ()=>{
-    paletteSelected = comp.dataset.type;
-    components.forEach(c=>c.classList.remove('selected'));
-    comp.classList.add('selected');
-    showPaletteHint(`Listo: ${paletteSelected.toUpperCase()} — toca el área para colocar`);
+    currentToPlace = comp.dataset.type;
   });
 });
-function showPaletteHint(text){
-  if(!paletteHintEl){
-    paletteHintEl=document.createElement('div');
-    Object.assign(paletteHintEl.style,{position:'fixed',left:'12px',top:'12px',zIndex:'120',padding:'8px 10px',border:'2px solid #777',borderRadius:'10px',background:'#fff',fontWeight:'800'});
-    document.body.appendChild(paletteHintEl);
-  }
-  paletteHintEl.textContent=text;
-}
-function hidePaletteHint(){ if(paletteHintEl){ paletteHintEl.remove(); paletteHintEl=null; } }
 canvas.addEventListener("dragover", e=>{ e.preventDefault(); e.dataTransfer.dropEffect='copy'; });
 canvas.addEventListener("drop", e=>{
   e.preventDefault(); if(simulation) return;
@@ -308,15 +352,11 @@ canvas.addEventListener("drop", e=>{
   createNode(type, pos.x, pos.y);
 });
 canvas.addEventListener('click', e=>{
-  if((e.target===workspace || e.target===wiresSVG) && paletteSelected){
+  // Si hay tipo elegido (desde picker o sidebar), colocar en el toque
+  if((e.target===workspace || e.target===wiresSVG) && currentToPlace){
     const pos = clientToWorkspace(e.clientX, e.clientY);
-    createNode(paletteSelected, pos.x, pos.y);
-    // Para colocar uno y salir del modo paleta, descomenta:
-    // paletteSelected=null; components.forEach(c=>c.classList.remove('selected')); hidePaletteHint();
+    createNode(currentToPlace, pos.x, pos.y);
   }
-});
-document.addEventListener('keydown', e=>{
-  if(e.key==='Escape'){ paletteSelected=null; components.forEach(c=>c.classList.remove('selected')); hidePaletteHint(); }
 });
 
 /* Selección */
@@ -331,7 +371,7 @@ function clearSelection(){
 /* Crear nodo */
 function createNode(type, x, y){
   const div = document.createElement('div'); div.className='node'; div.style.left = x + 'px'; div.style.top = y + 'px';
-  let name = type.toUpperCase();
+  let name = (type||'G').toUpperCase();
   if(type==='input') name = `I${++inputCount}`;
   if(type==='output') name = `Q${++outputCount}`;
   if(type==='M') name = `M${++memoryCount}`;
@@ -370,7 +410,6 @@ function createNode(type, x, y){
   if(node.output){ node.output.style.top='50%'; node.output.style.transform='translateY(-50%)'; }
 
   div.addEventListener('click', e=>{ if(e.target.classList.contains('terminal')) return; if(simulation) return; selectNode(node); });
-
   if(type==='input'){
     div.addEventListener('click', e=>{ if(e.target.classList.contains('terminal')) return; if(!simulation) return; div.classList.toggle('active'); scanLogic(); });
   }
@@ -382,7 +421,7 @@ function createNode(type, x, y){
   updateConnections();
 }
 
-/* Mover nodos (arrastrar solo si están seleccionados) */
+/* Mover nodos */
 function dragMove(el,node){
   let sx, sy, ix, iy, dragging=false;
   el.addEventListener('mousedown', e=>{
@@ -427,7 +466,7 @@ function dragMove(el,node){
   }
 }
 
-/* Conexiones y línea guía */
+/* Conexiones + línea guía */
 function enableConnections(node){
   const handler = el => {
     if(simulation) return;
@@ -558,19 +597,16 @@ function evaluateGate(type, inputs){
 }
 function scanLogic(){
   nodes.forEach(n=>{ if(n.type==='input') n.value = n.el.classList.contains('active')?1:0; n.invalid=false; });
-
   nodes.forEach(node=>{
     node.nextValue = node.value; if(node.type === 'input') return;
     const inVals = connections.filter(c => node.inputs.includes(c.to)).map(c => {
       const s = nodes.find(n => n.output === c.from); return s ? s.value : 0;
     });
-
     if(inVals.length === 0){
       if(node.type === 'output' || node.type === 'M') node.nextValue = 0;
       else if(node.type === 'sr') node.nextValue = node.q || 0;
       else node.nextValue = 0; return;
     }
-
     if(node.type === 'output' || node.type === 'M') node.nextValue = inVals[0] ? 1 : 0;
     else if(node.type === 'sr'){
       const S = inVals[0] ? 1 : 0; const R = inVals[1] ? 1 : 0;
@@ -579,9 +615,7 @@ function scanLogic(){
       else node.nextValue = node.q || 0;
     } else node.nextValue = evaluateGate(node.type, inVals) ? 1 : 0;
   });
-
   nodes.forEach(n=>{ n.value = n.nextValue; if(n.type==='sr') n.q = n.nextValue; });
-
   nodes.forEach(n=>{
     if(n.type === 'input' || n.type === 'output' || n.type === 'M'){
       n.el.classList.toggle('active', n.value === 1);
@@ -590,7 +624,6 @@ function scanLogic(){
     if(n.qIndicator) n.qIndicator.classList.toggle('on', n.value===1);
     n.el.classList.toggle('error', !!n.invalid);
   });
-
   updateConnections();
 }
 
@@ -621,7 +654,7 @@ document.getElementById('deleteBtn').addEventListener('click', ()=>{
   }
 });
 
-/* Supr/Backspace elimina */
+/* Borrar con Supr/Backspace en desktop */
 document.addEventListener('keydown', (e)=>{
   if(e.key === 'Delete' || e.key === 'Backspace'){
     if(simulation) return;
@@ -634,8 +667,7 @@ document.addEventListener('keydown', (e)=>{
   }
 });
 
-/* Click fondo deselecciona y redibuja al cambiar tamaño */
-workspace.addEventListener('click', (e)=>{ if(e.target === workspace){ clearSelection(); } });
+/* Redibuja cables al cambiar tamaño */
 window.addEventListener('resize', updateConnections);
 
 /* Iniciar */
