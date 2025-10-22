@@ -3,16 +3,15 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>SIMUPASIR — Espacio grande (5000x5000) — R8</title>
+<title>SIMUPASIR — 5000x5000 — Móvil</title>
 
 <!-- PWA -->
-<link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#f3e5ab" />
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#003366">
+<link rel="icon" href="/icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-<meta name="color-scheme" content="light" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
 
 <style>
   :root{
@@ -38,65 +37,57 @@
   #canvas { flex:1; background:#ffffff; position:relative; overflow:hidden; touch-action:none; }
   #workspace { position:absolute; top:0; left:0; width:var(--workspace-size); height:var(--workspace-size); transform-origin:0 0; background:transparent; }
 
-  /* Nodo 3:2 */
+  /* Nodo */
   .node {
-    position:absolute;
-    background:var(--node);
-    border:3px solid var(--accent);
-    border-radius:10px;
-    width:150px;
-    height:225px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    text-align:center;
-    cursor:move;
-    user-select:none;
-    padding:8px;
-    box-sizing:border-box;
-    box-shadow: 0 6px 0 rgba(0,0,0,0.06);
-    z-index:10;
-    touch-action: none;
+    position:absolute; background:var(--node); border:3px solid var(--accent); border-radius:10px;
+    width:150px; height:225px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center; cursor:move; user-select:none; padding:8px; box-sizing:border-box;
+    box-shadow: 0 6px 0 rgba(0,0,0,0.06); z-index:10; touch-action:none;
   }
   .label { font-weight:900; margin-bottom:6px; pointer-events:none; font-size:14px; color:#222; }
-  .selected { box-shadow: 0 10px 18px rgba(0,0,0,0.12); border-color: #0058a3 !important; transform: translateY(-2px); }
+  .selected { box-shadow: 0 10px 18px rgba(0,0,0,0.12); border-color:#0058a3!important; transform: translateY(-2px); }
 
   /* Pines */
   .terminal { height:10px; background:var(--pin); position:absolute; cursor:pointer; border-radius:5px; box-shadow: 0 1px 0 rgba(0,0,0,0.15); }
-  .terminal.input { width: var(--pin-long); left: calc(-1 * var(--pin-long)); }
-  .terminal.output { width: var(--pin-long); right: calc(-1 * var(--pin-long)); top:50%; transform: translateY(-50%); }
-
+  .terminal.input { width:var(--pin-long); left:calc(-1 * var(--pin-long)); }
+  .terminal.output { width:var(--pin-long); right:calc(-1 * var(--pin-long)); top:50%; transform:translateY(-50%); }
   .term-label { position:absolute; left:calc(-1 * var(--pin-long) - 36px); width:40px; text-align:right; font-size:12px; color:#222; user-select:none; }
 
-  /* Wires */
+  /* Cables */
   #wires { position:absolute; top:0; left:0; width:var(--workspace-size); height:var(--workspace-size); pointer-events:auto; z-index:6; }
-  .wire-path { fill:none; stroke:var(--wire); stroke-width:2; cursor:pointer; vector-effect: non-scaling-stroke; }
+  .wire-path { fill:none; stroke:var(--wire); stroke-width:2; cursor:pointer; vector-effect:non-scaling-stroke; pointer-events:stroke; }
   .wire-path.signal { stroke:var(--neon); stroke-width:3; filter: drop-shadow(0 0 8px rgba(0,255,102,0.25)); }
-  .wire-path.selected { stroke-width:3; stroke: #0078d7; }
-  .bend-handle { fill: #fff; stroke: #333; stroke-width:1.5px; r:6; cursor:grab; pointer-events:all; }
-  .bend-handle.selected { stroke: #0078d7; stroke-width:2.5px; fill:#e6f3ff; }
+  .wire-path.selected { stroke-width:3; stroke:#0078d7; }
+  .wire-path.ghost { stroke-dasharray:6 6; opacity:.7; }
 
-  #controls { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); background:var(--sidebar); padding:8px 12px; border-radius:10px; border:2px solid #bdb089; display:flex; gap:10px; align-items:center; z-index:100; }
+  .bend-handle { fill:#fff; stroke:#333; stroke-width:1.5px; r:6; cursor:grab; pointer-events:all; }
+  .bend-handle.selected { stroke:#0078d7; stroke-width:2.5px; fill:#e6f3ff; }
+
+  /* Controles */
+  #controls {
+    position:absolute; bottom:12px; left:50%; transform:translateX(-50%);
+    background:var(--sidebar); padding:8px 12px; border-radius:10px; border:2px solid #bdb089;
+    display:flex; gap:10px; align-items:center; z-index:100;
+  }
   #controls button { padding:8px 10px; border-radius:8px; border:1px solid #777; background:#fff; font-weight:700; cursor:pointer; }
-  /* Controles extra */
   #zoomIn, #zoomOut { padding:6px 10px; }
 
   .q-indicator { width:18px; height:18px; border-radius:50%; background:#444; margin-top:8px; pointer-events:none; border:2px solid #222; }
   .q-indicator.on { background:var(--neon); box-shadow:0 0 8px rgba(0,255,102,0.45); }
 
-  .hint { position: absolute; right: 12px; top: 12px; background: rgba(0,0,0,0.05); padding:10px; border-radius:8px; font-size:13px; color:#222; width:320px; z-index:40; }
+  .hint { position:absolute; right:12px; top:12px; background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; font-size:13px; color:#222; width:320px; z-index:40; }
+  #brand { position:fixed; right:12px; bottom:12px; background:rgba(0,0,0,0.06); padding:8px 12px; border-radius:8px; font-weight:900; letter-spacing:1px; z-index:60; box-shadow: 0 6px 0 rgba(0,0,0,0.04); }
 
-  #brand { position: fixed; right: 12px; bottom: 12px; background: rgba(0,0,0,0.06); padding:8px 12px; border-radius:8px; font-weight:900; letter-spacing:1px; z-index:60; box-shadow: 0 6px 0 rgba(0,0,0,0.04); }
-
-  /* Botón instalar PWA */
-  #installPWA { position: fixed; left: 12px; bottom: 12px; z-index: 61; padding:10px 12px; border-radius:10px; border:2px solid #777; background:#fff; font-weight:800; display:none; }
-
-  @supports(padding:max(0px)) {
-    #controls { bottom: calc(12px + env(safe-area-inset-bottom)); }
-    #installPWA { bottom: calc(12px + env(safe-area-inset-bottom)); }
+  /* Botón instalar */
+  #installBtn {
+    display:none; position:fixed; right:12px; bottom:80px; z-index:110;
+    background:#003366; color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:900; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,0.12);
   }
 
+  @supports(padding:max(0px)){
+    #controls { bottom: calc(12px + env(safe-area-inset-bottom)); }
+    #installBtn { bottom: calc(80px + env(safe-area-inset-bottom)); }
+  }
   @media (max-width:720px){
     #sidebar { display:none }
     #controls { top:12px; bottom:auto; left:50%; transform:translateX(-50%); }
@@ -121,7 +112,7 @@
     <div style="height:8px"></div>
     <div class="component" draggable="true" data-type="sr">SR (Set/Reset)</div>
     <div style="flex:1"></div>
-    <div style="font-size:12px;color:#333">Arrastra al área o toca un componente y luego toca el área. Conectar: salida → entrada. Supr para eliminar.</div>
+    <div style="font-size:12px;color:#333">Arrastra o toca un componente y luego toca el área. Conectar: salida → entrada. Supr para eliminar.</div>
   </div>
 
   <div id="canvas">
@@ -139,227 +130,196 @@
     </div>
 
     <div class="hint">
-      - Área de trabajo: 5000×5000 px (amplio). <br>
-      - Pan con un dedo; pellizca para zoom (móvil). <br>
-      - Seleccionar línea + Supr / botón Eliminar para borrar.
+      - Pan con un dedo. Pellizca para zoom. <br>
+      - Al conectar, verás una línea guía desde la salida hasta tu dedo.
     </div>
   </div>
 
-  <button id="installPWA" hidden>Instalar app</button>
   <div id="brand">SIMUPASIR</div>
 
+  <!-- Install button -->
+  <button id="installBtn">Instalar SIMUPASIR</button>
+
 <script>
-/* SIMUPASIR — R8 + PWA + Mobile Fix (DnD + Pinch + Coordenadas) */
+/* ===== PWA: Install prompt & Service Worker ===== */
+let deferredPrompt = null;
+const installBtn = document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'block';
+});
+installBtn.addEventListener('click', async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt(); await deferredPrompt.userChoice;
+  installBtn.style.display = 'none'; deferredPrompt = null;
+});
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(reg => console.log('SW scope:', reg.scope))
+      .catch(err => console.error('SW error:', err));
+  });
+}
+
+/* ===== SIMUPASIR – móvil ===== */
 const canvas = document.getElementById("canvas");
 const workspace = document.getElementById("workspace");
 const wiresSVG = document.getElementById("wires");
 const components = document.querySelectorAll(".component");
 
-// Fallback: modo "tocar para insertar" si DnD no funciona (por iframes/preview)
-let paletteSelected = null;
-let paletteHintEl = null;
-
-let nodes = [];
-let connections = [];
-let pendingOutput = null;
+let nodes = [], connections = [], pendingOutput = null, pendingGhost = null;
 let simulation = false;
-
 let inputCount=0, outputCount=0, memoryCount=0;
 let scale=1, panX=0, panY=0, isPanning=false, panStartX=0, panStartY=0;
 let simTimer=null, SCAN_MS=60;
+let selectedNode=null, selectedConn=null, draggingBend=null;
+let paletteSelected=null, paletteHintEl=null;
 
-let selectedNode=null, selectedConn=null;
-let draggingBend=null;
-
+/* Cliente -> workspace (considera pan/zoom) */
 function clientToWorkspace(clientX, clientY){
   const rect = canvas.getBoundingClientRect();
   return { x: (clientX - rect.left - panX) / scale, y: (clientY - rect.top - panY) / scale };
 }
+
+/* EXTREMO de pin en coordenadas del workspace (FIX: usar rect del workspace) */
 function terminalEdge(term){
   const rect = term.getBoundingClientRect();
   const wsRect = workspace.getBoundingClientRect();
-  const isInput = term.classList.contains('input');
+  const isInput  = term.classList.contains('input');
   const isOutput = term.classList.contains('output');
-  let xScreen;
-  if(isInput){ xScreen = rect.left; }
-  else if(isOutput){ xScreen = rect.right; }
-  else { xScreen = rect.left + rect.width/2; }
+  const xScreen = isInput ? rect.left : (isOutput ? rect.right : rect.left + rect.width/2);
   const yScreen = rect.top + rect.height/2;
-  // convertir a coords del workspace: restar origen del workspace en pantalla y dividir por escala
-  const x = (xScreen - wsRect.left) / scale;
-  const y = (yScreen - wsRect.top) / scale;
-  return { x, y };
+  return { x: (xScreen - wsRect.left) / scale, y: (yScreen - wsRect.top) / scale };
 }
 
-/* Zoom con rueda */
+/* Zoom rueda + botones */
 canvas.addEventListener("wheel", e=>{
   e.preventDefault();
-  const delta = e.deltaY > 0 ? -0.08 : 0.08;
-  setZoom(scale + delta);
+  setZoom(scale + (e.deltaY > 0 ? -0.08 : 0.08));
 });
-
+function setZoom(next){
+  const rect = canvas.getBoundingClientRect();
+  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+  const fx = (cx - rect.left - panX) / scale;
+  const fy = (cy - rect.top  - panY) / scale;
+  const newScale = Math.max(0.25, Math.min(3, next));
+  panX = cx - rect.left - fx * newScale;
+  panY = cy - rect.top  - fy * newScale;
+  scale = newScale;
+  updateTransform(); updateConnections();
+}
+document.getElementById('zoomIn').onclick  = ()=>setZoom(scale+0.12);
+document.getElementById('zoomOut').onclick = ()=>setZoom(scale-0.12);
 function updateTransform(){ workspace.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`; }
 
 /* Pan mouse */
 workspace.addEventListener("mousedown", e=>{
   if(e.target === workspace){
-    if(e.button === 0){ clearSelection(); }
+    if(e.button === 0) clearSelection();
     isPanning = true;
     panStartX = e.clientX - panX; panStartY = e.clientY - panY;
     document.addEventListener("mousemove", doPan);
     document.addEventListener("mouseup", endPan);
   }
 });
-function doPan(e){ if(!isPanning) return; panX = e.clientX - panStartX; panY = e.clientY - panStartY; updateTransform(); }
+function doPan(e){ if(!isPanning) return; panX = e.clientX - panStartX; panY = e.clientY - panStartY; updateTransform(); updateConnections(); }
 function endPan(){ isPanning=false; document.removeEventListener("mousemove", doPan); document.removeEventListener("mouseup", endPan); }
 
-/* Pan & Pinch touch (móvil) */
+/* Pan & Pinch touch */
 let touchPan = { active:false, id:null, startClientX:0, startClientY:0, startPanX:0, startPanY:0 };
-let pinch = { active:false, startDist:0, startScale:1, centerX:0, centerY:0 };
-
+let pinch = { active:false, startDist:0, startScale:1, cx:0, cy:0 };
 workspace.addEventListener('touchstart', e=>{
-  if(e.touches.length === 1 && !pinch.active){
-    const t = e.touches[0];
+  if(e.touches.length===1 && !pinch.active){
+    const t=e.touches[0];
     const target = document.elementFromPoint(t.clientX, t.clientY);
-    if(target === workspace || target === wiresSVG){
-      touchPan.active = true;
-      touchPan.id = t.identifier;
-      touchPan.startClientX = t.clientX;
-      touchPan.startClientY = t.clientY;
-      touchPan.startPanX = panX;
-      touchPan.startPanY = panY;
-      clearSelection();
-      e.preventDefault();
+    if(target===workspace || target===wiresSVG){
+      touchPan={active:true,id:t.identifier,startClientX:t.clientX,startClientY:t.clientY,startPanX:panX,startPanY:panY};
+      clearSelection(); e.preventDefault();
     }
-  } else if (e.touches.length === 2) {
+  } else if (e.touches.length===2) {
     pinch.active = true;
-    const dx = e.touches[1].clientX - e.touches[0].clientX;
-    const dy = e.touches[1].clientY - e.touches[0].clientY;
-    pinch.startDist = Math.hypot(dx, dy);
+    const dx=e.touches[1].clientX - e.touches[0].clientX;
+    const dy=e.touches[1].clientY - e.touches[0].clientY;
+    pinch.startDist = Math.hypot(dx,dy);
     pinch.startScale = scale;
-    // centro del gesto en coords del canvas
-    pinch.centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-    pinch.centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    touchPan.active = false;
-    e.preventDefault();
+    pinch.cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+    pinch.cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+    touchPan.active=false; e.preventDefault();
   }
-}, { passive:false });
-
+},{passive:false});
 workspace.addEventListener('touchmove', e=>{
-  if(pinch.active && e.touches.length >= 2){
-    const dx = e.touches[1].clientX - e.touches[0].clientX;
-    const dy = e.touches[1].clientY - e.touches[0].clientY;
-    const dist = Math.hypot(dx, dy);
-    if (pinch.startDist > 0){
-      let newScale = (pinch.startScale * dist / pinch.startDist);
-      newScale = Math.max(0.25, Math.min(3, newScale));
-      const rect = canvas.getBoundingClientRect();
-      const focusX = (pinch.centerX - rect.left - panX) / scale; // coords workspace antes
-      const focusY = (pinch.centerY - rect.top  - panY) / scale;
-      panX = pinch.centerX - rect.left - focusX * newScale;
-      panY = pinch.centerY - rect.top  - focusY * newScale;
-      scale = newScale;
-      updateTransform();
-      updateConnections();
-      e.preventDefault();
-    }
-    return;
+  if(pinch.active && e.touches.length>=2){
+    const dx=e.touches[1].clientX - e.touches[0].clientX;
+    const dy=e.touches[1].clientY - e.touches[0].clientY;
+    const dist=Math.hypot(dx,dy);
+    let newScale = pinch.startScale * dist / pinch.startDist;
+    newScale = Math.max(.25, Math.min(3, newScale));
+    const rect = canvas.getBoundingClientRect();
+    const fx = (pinch.cx - rect.left - panX) / scale;
+    const fy = (pinch.cy - rect.top  - panY) / scale;
+    panX = pinch.cx - rect.left - fx * newScale;
+    panY = pinch.cy - rect.top  - fy * newScale;
+    scale = newScale; updateTransform(); updateConnections(); e.preventDefault(); return;
   }
   if(!touchPan.active) return;
-  for(let i=0;i<e.touches.length;i++){
-    const t = e.touches[i];
-    if(t.identifier === touchPan.id){
-      const dx = t.clientX - touchPan.startClientX;
-      const dy = t.clientY - touchPan.startClientY;
-      panX = touchPan.startPanX + dx;
-      panY = touchPan.startPanY + dy;
-      updateTransform();
-      updateConnections();
-      e.preventDefault();
-      return;
+  for(const t of e.touches){
+    if(t.identifier===touchPan.id){
+      panX = touchPan.startPanX + (t.clientX - touchPan.startClientX);
+      panY = touchPan.startPanY + (t.clientY - touchPan.startClientY);
+      updateTransform(); updateConnections(); e.preventDefault(); return;
     }
   }
-}, { passive:false });
-
+},{passive:false});
 workspace.addEventListener('touchend', e=>{
-  if (pinch.active && e.touches.length < 2){ pinch.active = false; }
+  if(pinch.active && e.touches.length<2) pinch.active=false;
   if(!touchPan.active) return;
-  let still=false;
-  for(let i=0;i<e.touches.length;i++){
-    if(e.touches[i].identifier === touchPan.id) still=true;
-  }
-  if(!still) { touchPan.active=false; touchPan.id=null; }
+  let still=false; for(const t of e.touches){ if(t.identifier===touchPan.id) still=true; }
+  if(!still) touchPan.active=false;
 });
 
-/* DnD + Fallback de paleta */
-components.forEach(comp => {
-  // DnD normal
-  comp.addEventListener('dragstart', (e) => {
-    const t = comp.dataset.type;
-    e.dataTransfer.setData('application/x-simupasir', t);
-    e.dataTransfer.setData('text/plain', t);
-    e.dataTransfer.effectAllowed = 'copy';
+/* DnD + Paleta tap-para-insertar */
+components.forEach(comp=>{
+  comp.addEventListener("dragstart", e=>{
+    e.dataTransfer.setData("application/x-simupasir", comp.dataset.type);
+    e.dataTransfer.setData("text/plain", comp.dataset.type);
+    e.dataTransfer.effectAllowed="copy";
   });
-  // Fallback táctil/click: seleccionar del panel
-  comp.addEventListener('click', () => {
+  comp.addEventListener("click", ()=>{
     paletteSelected = comp.dataset.type;
     components.forEach(c=>c.classList.remove('selected'));
     comp.classList.add('selected');
-    showPaletteHint(`Listo: ${paletteSelected.toUpperCase()} — toca en el área para colocar`);
+    showPaletteHint(`Listo: ${paletteSelected.toUpperCase()} — toca el área para colocar`);
   });
 });
-
 function showPaletteHint(text){
   if(!paletteHintEl){
-    paletteHintEl = document.createElement('div');
-    paletteHintEl.id = 'paletteHint';
-    paletteHintEl.style.position='fixed';
-    paletteHintEl.style.left='12px';
-    paletteHintEl.style.top='12px';
-    paletteHintEl.style.zIndex='110';
-    paletteHintEl.style.padding='8px 10px';
-    paletteHintEl.style.border='2px solid #777';
-    paletteHintEl.style.borderRadius='10px';
-    paletteHintEl.style.background='#fff';
-    paletteHintEl.style.fontWeight='800';
+    paletteHintEl=document.createElement('div');
+    Object.assign(paletteHintEl.style,{position:'fixed',left:'12px',top:'12px',zIndex:'120',padding:'8px 10px',border:'2px solid #777',borderRadius:'10px',background:'#fff',fontWeight:'800'});
     document.body.appendChild(paletteHintEl);
   }
-  paletteHintEl.textContent = text;
+  paletteHintEl.textContent=text;
 }
 function hidePaletteHint(){ if(paletteHintEl){ paletteHintEl.remove(); paletteHintEl=null; } }
-
-canvas.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
-canvas.addEventListener('drop', (e) => {
-  e.preventDefault();
-  if (simulation) return;
-  const type = e.dataTransfer.getData('application/x-simupasir') || e.dataTransfer.getData('text/plain');
-  if (!type) { console.warn('No llegó el tipo de componente en el drop.'); return; }
+canvas.addEventListener("dragover", e=>{ e.preventDefault(); e.dataTransfer.dropEffect='copy'; });
+canvas.addEventListener("drop", e=>{
+  e.preventDefault(); if(simulation) return;
+  const type = e.dataTransfer.getData("application/x-simupasir") || e.dataTransfer.getData("text/plain");
+  if(!type) return;
   const pos = clientToWorkspace(e.clientX, e.clientY);
   createNode(type, pos.x, pos.y);
 });
-
-// Fallback de inserción por toque/click
-function placeFromPaletteAtClient(clientX, clientY){
-  if(!paletteSelected) return false;
-  const pos = clientToWorkspace(clientX, clientY);
-  createNode(paletteSelected, pos.x, pos.y);
-  return true;
-}
-canvas.addEventListener('click', (e)=>{
-  if(e.target === workspace || e.target === wiresSVG){
-    placeFromPaletteAtClient(e.clientX, e.clientY);
+canvas.addEventListener('click', e=>{
+  if((e.target===workspace || e.target===wiresSVG) && paletteSelected){
+    const pos = clientToWorkspace(e.clientX, e.clientY);
+    createNode(paletteSelected, pos.x, pos.y);
+    // Para colocar uno y salir del modo paleta, descomenta:
+    // paletteSelected=null; components.forEach(c=>c.classList.remove('selected')); hidePaletteHint();
   }
 });
-// Tecla ESC para salir del modo paleta
-document.addEventListener('keydown', (e)=>{
-  if(e.key==='Escape'){
-    paletteSelected = null;
-    components.forEach(c=>c.classList.remove('selected'));
-    hidePaletteHint();
-  }
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){ paletteSelected=null; components.forEach(c=>c.classList.remove('selected')); hidePaletteHint(); }
 });
 
-/* selección */
+/* Selección */
 function selectNode(node){ if(simulation) return; clearSelection(); selectedNode=node; node.el.classList.add('selected'); }
 function selectConnection(conn){ if(simulation) return; clearSelection(); selectedConn=conn; conn.selected=true; if(conn.path) conn.path.classList.add('selected'); renderConnection(conn); }
 function clearSelection(){
@@ -367,13 +327,11 @@ function clearSelection(){
   if(selectedConn){ if(selectedConn.path) selectedConn.path.classList.remove('selected'); selectedConn.selected=false; selectedConn=null; }
   connections.forEach(c=>{ if(c.handles) c.handles.forEach(h=>h.remove()); c.handles=[]; });
 }
-function hideAllBendHandles(){ connections.forEach(conn=>{ if(conn.handles){ conn.handles.forEach(h=>h.remove()); conn.handles = []; } }); }
 
-/* crear nodo */
+/* Crear nodo */
 function createNode(type, x, y){
-  if (!type) type = 'and';
   const div = document.createElement('div'); div.className='node'; div.style.left = x + 'px'; div.style.top = y + 'px';
-  let name = (type || 'G').toUpperCase();
+  let name = type.toUpperCase();
   if(type==='input') name = `I${++inputCount}`;
   if(type==='output') name = `Q${++outputCount}`;
   if(type==='M') name = `M${++memoryCount}`;
@@ -424,7 +382,7 @@ function createNode(type, x, y){
   updateConnections();
 }
 
-/* mover nodos */
+/* Mover nodos (arrastrar solo si están seleccionados) */
 function dragMove(el,node){
   let sx, sy, ix, iy, dragging=false;
   el.addEventListener('mousedown', e=>{
@@ -444,6 +402,7 @@ function dragMove(el,node){
     updateConnections();
   }
   function onUp(){ dragging=false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+  // Touch
   el.addEventListener('touchstart', e=>{
     if(simulation) return;
     if(selectedNode !== node) return;
@@ -452,16 +411,14 @@ function dragMove(el,node){
     dragging = true;
     document.addEventListener('touchmove', onTouchMove, {passive:false});
     document.addEventListener('touchend', onTouchEnd);
-    e.stopPropagation();
-    e.preventDefault();
+    e.stopPropagation(); e.preventDefault();
   }, {passive:false});
   function onTouchMove(e){
     if(!dragging) return;
     const t = e.changedTouches[0];
     el.style.left = ix + (t.clientX - sx)/scale + 'px';
     el.style.top  = iy + (t.clientY - sy)/scale + 'px';
-    updateConnections();
-    e.preventDefault();
+    updateConnections(); e.preventDefault();
   }
   function onTouchEnd(){
     dragging=false;
@@ -470,35 +427,67 @@ function dragMove(el,node){
   }
 }
 
-/* habilitar conexiones */
+/* Conexiones y línea guía */
 function enableConnections(node){
   const handler = el => {
     if(simulation) return;
-    if(el.classList.contains('output')){ pendingOutput = el; return; }
+    if(el.classList.contains('output')){
+      pendingOutput = el; showGhost(el); return;
+    }
     if(el.classList.contains('input')){
       if(!pendingOutput) return;
-      if(pendingOutput === el){ pendingOutput = null; return; }
+      if(pendingOutput === el){ pendingOutput = null; removeGhost(); return; }
       createConnection(pendingOutput, el);
-      pendingOutput = null;
+      pendingOutput = null; removeGhost();
     }
   };
   if(node.output) node.output.addEventListener('click', ()=>handler(node.output));
   node.inputs.forEach(inp => inp.addEventListener('click', ()=>handler(inp)));
 }
+function showGhost(fromTerm){
+  removeGhost();
+  const s = terminalEdge(fromTerm);
+  const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("class","wire-path ghost");
+  updateGhostPath(path, s.x, s.y, s.x, s.y);
+  wiresSVG.appendChild(path); pendingGhost=path;
+  workspace.addEventListener('mousemove',trackGhost);
+  workspace.addEventListener('touchmove',trackGhostTouch,{passive:false});
+}
+function removeGhost(){
+  if(pendingGhost){ pendingGhost.remove(); pendingGhost=null; }
+  workspace.removeEventListener('mousemove',trackGhost);
+  workspace.removeEventListener('touchmove',trackGhostTouch);
+}
+function trackGhost(e){
+  if(!pendingGhost||!pendingOutput) return;
+  const p=clientToWorkspace(e.clientX,e.clientY);
+  const s=terminalEdge(pendingOutput);
+  updateGhostPath(pendingGhost, s.x,s.y, p.x,p.y);
+}
+function trackGhostTouch(e){
+  if(!pendingGhost||!pendingOutput) return;
+  const t=e.touches[0];
+  const p=clientToWorkspace(t.clientX,t.clientY);
+  const s=terminalEdge(pendingOutput);
+  updateGhostPath(pendingGhost, s.x,s.y, p.x,p.y);
+  e.preventDefault();
+}
+function updateGhostPath(path,sx,sy,ex,ey){
+  const midX=(sx+ex)/2;
+  path.setAttribute('d',`M${sx},${sy} L${midX},${sy} L${midX},${ey} L${ex},${ey}`);
+}
 
-/* crear conexión */
+/* Crear y dibujar conexión */
 function createConnection(fromTerm, toTerm){
   if(simulation) return;
   if(connections.find(c => c.from === fromTerm && c.to === toTerm)) return;
   const conn = { from: fromTerm, to: toTerm, path: null, bends: [], handles: [], selected: false };
-  connections.push(conn);
-  renderConnection(conn);
+  connections.push(conn); renderConnection(conn);
 }
-
-/* dibujar conexión */
 function renderConnection(conn){
-  if(conn.path){ conn.path.remove(); conn.path = null; }
-  if(conn.handles){ conn.handles.forEach(h=>h.remove()); conn.handles = []; }
+  if(conn.path){ conn.path.remove(); conn.path=null; }
+  if(conn.handles){ conn.handles.forEach(h=>h.remove()); conn.handles=[]; }
 
   const s = terminalEdge(conn.from);
   const e = terminalEdge(conn.to);
@@ -524,131 +513,36 @@ function renderConnection(conn){
   if(srcVal === 1) path.classList.add('signal'); else path.classList.remove('signal');
 
   path.addEventListener('click', ev=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); });
-  path.addEventListener('touchstart', ev=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); });
-
-  path.addEventListener('contextmenu', ev=>{
-    ev.preventDefault();
-    if(simulation) return;
-    const idx = connections.indexOf(conn);
-    if(idx >= 0) connections.splice(idx,1);
-    clearSelection();
-    updateConnections();
-  });
-
-  let longPressTimer = null;
-  function onPathDown(ev){
-    if(simulation) return;
-    if(ev.type === 'mousedown' && ev.button !== 0) return;
-    ev.stopPropagation();
-    longPressTimer = setTimeout(()=>{
-      const clientX = (ev.type === 'mousedown') ? ev.clientX : (ev.touches && ev.touches[0] ? ev.touches[0].clientX : ev.clientX);
-      const clientY = (ev.type === 'mousedown') ? ev.clientY : (ev.touches && ev.touches[0] ? ev.touches[0].clientY : ev.clientY);
-      const pos = clientToWorkspace(clientX, clientY);
-      conn.bends.push({ x: pos.x, y: pos.y });
-      orderBends(conn);
-      renderConnection(conn);
-      selectConnection(conn);
-    }, 500);
-    document.addEventListener('mouseup', onPathUpOnce);
-    document.addEventListener('touchend', onPathUpOnce, {passive:true});
-  }
-  function onPathUpOnce(){ if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; } document.removeEventListener('mouseup', onPathUpOnce); document.removeEventListener('touchend', onPathUpOnce); }
-  path.addEventListener('mousedown', onPathDown);
-  path.addEventListener('touchstart', onPathDown, {passive:false});
+  path.addEventListener('contextmenu', ev=>{ ev.preventDefault(); if(simulation) return; const idx = connections.indexOf(conn); if(idx >= 0) connections.splice(idx,1); clearSelection(); updateConnections(); });
 
   wiresSVG.appendChild(path);
   conn.path = path;
 
-  if(conn.selected && !simulation){
-    conn.handles = [];
-    conn.bends.forEach((b, idx)=>{
-      const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
-      c.setAttribute("cx", b.x);
-      c.setAttribute("cy", b.y);
-      c.setAttribute("r", 6);
-      c.setAttribute("class", "bend-handle");
-      wiresSVG.appendChild(c);
-      conn.handles.push(c);
-
-      c.addEventListener('mousedown', ev=>{
-        if(simulation) return;
-        ev.stopPropagation();
-        draggingBend = { conn, index: idx };
-        document.addEventListener('mousemove', onBendMove);
-        document.addEventListener('mouseup', onBendUp);
-      });
-
-      c.addEventListener('touchstart', ev=>{
-        if(simulation) return;
-        ev.stopPropagation();
-        const t = ev.changedTouches[0];
-        draggingBend = { conn, index: idx, touchId: t.identifier };
-        document.addEventListener('touchmove', onBendMoveTouch, {passive:false});
-        document.addEventListener('touchend', onBendUpTouch);
-      }, {passive:false});
-
-      c.addEventListener('click', ev=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); c.classList.add('selected'); });
-    });
-  }
   updatePinsVisual(conn, srcVal);
 }
-
-function onBendMove(ev){
-  if(!draggingBend) return;
-  const pos = clientToWorkspace(ev.clientX, ev.clientY);
-  const conn = draggingBend.conn;
-  const idx = draggingBend.index;
-  conn.bends[idx].x = pos.x;
-  conn.bends[idx].y = pos.y;
-  renderConnection(conn);
-}
-function onBendUp(){
-  if(!draggingBend) return;
-  document.removeEventListener('mousemove', onBendMove);
-  document.removeEventListener('mouseup', onBendUp);
-  draggingBend = null;
-}
-function onBendMoveTouch(ev){
-  if(!draggingBend) return;
-  ev.preventDefault();
-  const t = ev.changedTouches[0];
-  const pos = clientToWorkspace(t.clientX, t.clientY);
-  const conn = draggingBend.conn;
-  const idx = draggingBend.index;
-  conn.bends[idx].x = pos.x;
-  conn.bends[idx].y = pos.y;
-  renderConnection(conn);
-}
-function onBendUpTouch(){
-  if(!draggingBend) return;
-  document.removeEventListener('touchmove', onBendMoveTouch);
-  document.removeEventListener('touchend', onBendUpTouch);
-  draggingBend = null;
-}
 function orderBends(conn){
-  const s = terminalEdge(conn.from);
-  const e = terminalEdge(conn.to);
-  const asc = s.x <= e.x;
-  conn.bends.sort((a,b)=> asc ? a.x - b.x : b.x - a.x);
+  const s=terminalEdge(conn.from), e=terminalEdge(conn.to);
+  const asc = s.x <= e.x; conn.bends.sort((a,b)=> asc?a.x-b.x:b.x-a.x);
 }
 function updatePinsVisual(conn, srcVal){
-  try{ if(conn.from) conn.from.style.background = srcVal===1 ? getComputedStyle(document.documentElement).getPropertyValue('--neon') || '#00ff66' : getComputedStyle(document.documentElement).getPropertyValue('--pin') || '#222'; }catch(e){}
+  try{
+    conn.from.style.background = srcVal===1 ? getComputedStyle(document.documentElement).getPropertyValue('--neon') || '#00ff66' : getComputedStyle(document.documentElement).getPropertyValue('--pin') || '#222';
+  }catch(e){}
   const srcNode = nodes.find(n=>n.output===conn.from);
-  if(srcNode && srcNode.qIndicator){ if(srcVal===1) srcNode.qIndicator.classList.add('on'); else srcNode.qIndicator.classList.remove('on'); }
+  if(srcNode && srcNode.qIndicator){ srcNode.qIndicator.classList.toggle('on', srcVal===1); }
 }
-function getSourceNodeValue(conn){
-  const n = nodes.find(nn => nn.output === conn.from);
-  return n ? n.value : 0;
-}
+function getSourceNodeValue(conn){ const n = nodes.find(nn => nn.output === conn.from); return n ? n.value : 0; }
 function updateConnections(){ connections.forEach(c=>renderConnection(c)); }
+
+/* Eliminar nodo + conexiones */
 function removeNode(node){
   if(simulation) return;
   connections = connections.filter(c => c.from !== node.output && !node.inputs.includes(c.to));
-  node.el.remove();
-  nodes = nodes.filter(n => n !== node);
-  clearSelection();
-  updateConnections();
+  node.el.remove(); nodes = nodes.filter(n => n !== node);
+  clearSelection(); updateConnections();
 }
+
+/* Lógica */
 function evaluateGate(type, inputs){
   if(inputs.length === 0) return 0;
   switch(type){
@@ -666,9 +560,7 @@ function scanLogic(){
   nodes.forEach(n=>{ if(n.type==='input') n.value = n.el.classList.contains('active')?1:0; n.invalid=false; });
 
   nodes.forEach(node=>{
-    node.nextValue = node.value;
-    if(node.type === 'input') return;
-
+    node.nextValue = node.value; if(node.type === 'input') return;
     const inVals = connections.filter(c => node.inputs.includes(c.to)).map(c => {
       const s = nodes.find(n => n.output === c.from); return s ? s.value : 0;
     });
@@ -676,8 +568,7 @@ function scanLogic(){
     if(inVals.length === 0){
       if(node.type === 'output' || node.type === 'M') node.nextValue = 0;
       else if(node.type === 'sr') node.nextValue = node.q || 0;
-      else node.nextValue = 0;
-      return;
+      else node.nextValue = 0; return;
     }
 
     if(node.type === 'output' || node.type === 'M') node.nextValue = inVals[0] ? 1 : 0;
@@ -699,55 +590,38 @@ function scanLogic(){
     if(n.qIndicator) n.qIndicator.classList.toggle('on', n.value===1);
     n.el.classList.toggle('error', !!n.invalid);
   });
+
   updateConnections();
 }
 
+/* Botones */
 document.getElementById('simulate').addEventListener('click', ()=>{
   if(simulation) return;
-  clearSelection();
-  simulation = true;
-  scanLogic();
-  simTimer = setInterval(scanLogic, SCAN_MS);
+  clearSelection(); simulation = true; scanLogic(); simTimer = setInterval(scanLogic, SCAN_MS);
 });
 document.getElementById('stop').addEventListener('click', ()=>{
   if(simTimer){ clearInterval(simTimer); simTimer = null; }
   simulation = false;
-  nodes.forEach(n=>{ n.value=0; if(n.type==='input' || n.type==='output' || n.type==='M') n.el.classList.remove('active'); if(n.qIndicator) n.qIndicator.classList.remove('on'); n.invalid=false; if(n.output) n.output.style.background = getComputedStyle(document.documentElement).getPropertyValue('--pin') || '#222'; });
+  nodes.forEach(n=>{
+    n.value=0;
+    if(n.type==='input' || n.type==='output' || n.type==='M') n.el.classList.remove('active');
+    if(n.qIndicator) n.qIndicator.classList.remove('on');
+    n.invalid=false;
+    if(n.output) n.output.style.background = getComputedStyle(document.documentElement).getPropertyValue('--pin') || '#222';
+  });
   updateConnections();
 });
-
-// Zoom botones
-const btnZoomIn = document.getElementById('zoomIn');
-const btnZoomOut = document.getElementById('zoomOut');
-btnZoomIn.addEventListener('click', ()=>{ setZoom(scale + 0.12); });
-btnZoomOut.addEventListener('click', ()=>{ setZoom(scale - 0.12); });
-function setZoom(next){
-  const rect = canvas.getBoundingClientRect();
-  const cx = rect.left + rect.width/2;
-  const cy = rect.top + rect.height/2;
-  const focusX = (cx - rect.left - panX) / scale;
-  const focusY = (cy - rect.top - panY) / scale;
-  let newScale = Math.max(0.25, Math.min(3, next));
-  panX = cx - rect.left - focusX * newScale;
-  panY = cy - rect.top  - focusY * newScale;
-  scale = newScale;
-  updateTransform();
-  updateConnections();
-}
-
-// Eliminar
 document.getElementById('deleteBtn').addEventListener('click', ()=>{
   if(simulation) return;
   if(selectedNode){ removeNode(selectedNode); return; }
   if(selectedConn){
     const idx = connections.indexOf(selectedConn);
     if(idx >= 0) connections.splice(idx,1);
-    clearSelection();
-    updateConnections();
-    return;
+    clearSelection(); updateConnections();
   }
 });
 
+/* Supr/Backspace elimina */
 document.addEventListener('keydown', (e)=>{
   if(e.key === 'Delete' || e.key === 'Backspace'){
     if(simulation) return;
@@ -755,62 +629,18 @@ document.addEventListener('keydown', (e)=>{
     else if(selectedConn){
       const idx = connections.indexOf(selectedConn);
       if(idx >= 0) connections.splice(idx,1);
-      clearSelection();
-      updateConnections();
+      clearSelection(); updateConnections();
     }
   }
 });
 
-workspace.addEventListener('click', (e)=>{
-  if(e.target === workspace){
-    clearSelection();
-    hideAllBendHandles();
-  }
-});
+/* Click fondo deselecciona y redibuja al cambiar tamaño */
+workspace.addEventListener('click', (e)=>{ if(e.target === workspace){ clearSelection(); } });
+window.addEventListener('resize', updateConnections);
 
+/* Iniciar */
 updateConnections();
-console.log("SIMUPASIR R8 listo — PWA + Fix DnD + Pinch Zoom.");
-// Redibujar al rotar/cambiar tamaño (móviles)
-window.addEventListener('resize', ()=>{ updateConnections(); });
-
-/* ------------ PWA: registro del Service Worker ------------ */
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('SW registrado', reg.scope))
-      .catch(err => console.warn('SW error', err));
-  });
-}
-
-/* ------------ PWA: botón de instalación ------------ */
-let deferredPrompt = null;
-const installBtn = document.getElementById('installPWA');
-
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault();
-  deferredPrompt = e;
-  installBtn.hidden = false;
-  installBtn.style.display = 'block';
-});
-
-installBtn.addEventListener('click', async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  console.log('Instalación:', outcome);
-  deferredPrompt = null;
-  installBtn.style.display = 'none';
-  installBtn.hidden = true;
-});
-
-/* iOS: sugerencia */
-(function(){
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  if (isIOS && !isStandalone) {
-    console.log('En iOS usa “Compartir → Añadir a pantalla de inicio”.');
-  }
-})();
+console.log("SIMUPASIR móvil listo.");
 </script>
 </body>
 </html>
