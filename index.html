@@ -3,19 +3,14 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-
 <title>SIMUPASIR — Espacio grande (5000x5000) — R8</title>
 
-<!-- PWA: manifest + tema -->
+<!-- PWA -->
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#f3e5ab" />
-
-<!-- iOS: modo standalone e íconos (agrega tus PNG reales en /icons/) -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
-
-<!-- Seguridad recomendada -->
 <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 <meta name="color-scheme" content="light" />
 
@@ -42,7 +37,7 @@
   #canvas { flex:1; background:#ffffff; position:relative; overflow:hidden; touch-action:none; }
   #workspace { position:absolute; top:0; left:0; width:var(--workspace-size); height:var(--workspace-size); transform-origin:0 0; background:transparent; }
 
-  /* Nodo 3:2 (proporción) - tamaño base 150x225 */
+  /* Nodo 3:2 */
   .node {
     position:absolute;
     background:var(--node);
@@ -95,7 +90,6 @@
   #installPWA { position: fixed; left: 12px; bottom: 12px; z-index: 61; padding:10px 12px; border-radius:10px; border:2px solid #777; background:#fff; font-weight:800; display:none; }
 
   @supports(padding:max(0px)) {
-    /* Asegurar que controles no choquen con barras del móvil */
     #controls { bottom: calc(12px + env(safe-area-inset-bottom)); }
     #installPWA { bottom: calc(12px + env(safe-area-inset-bottom)); }
   }
@@ -147,10 +141,7 @@
   <div id="brand">SIMUPASIR</div>
 
 <script>
-/* ------------ TU LÓGICA ORIGINAL (SIN CAMBIOS) ------------ */
-/* SIMUPASIR — R8 ... (todo tu script original) */
-/* Nota: el único cambio es que añadimos el bloque de registro del Service Worker y el flujo de instalación abajo. */
-
+/* SIMUPASIR — R8 + PWA + FIX DnD */
 const canvas = document.getElementById("canvas");
 const workspace = document.getElementById("workspace");
 const wiresSVG = document.getElementById("wires");
@@ -177,7 +168,6 @@ function terminalEdge(term){
   const canvasRect = canvas.getBoundingClientRect();
   const isInput = term.classList.contains('input');
   const isOutput = term.classList.contains('output');
-
   let x;
   if(isInput){ x = rect.left - canvasRect.left; }
   else if(isOutput){ x = rect.right - canvasRect.left; }
@@ -186,6 +176,7 @@ function terminalEdge(term){
   return { x: x/scale, y: y/scale };
 }
 
+/* Zoom */
 canvas.addEventListener("wheel", e=>{
   e.preventDefault();
   const delta = e.deltaY > 0 ? -0.08 : 0.08;
@@ -193,6 +184,7 @@ canvas.addEventListener("wheel", e=>{
   updateTransform();
 });
 
+/* Pan mouse */
 workspace.addEventListener("mousedown", e=>{
   if(e.target === workspace){
     if(e.button === 0){ clearSelection(); }
@@ -206,7 +198,7 @@ function doPan(e){ if(!isPanning) return; panX = e.clientX - panStartX; panY = e
 function endPan(e){ isPanning=false; document.removeEventListener("mousemove", doPan); document.removeEventListener("mouseup", endPan); }
 function updateTransform(){ workspace.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`; }
 
-/* Touch pan */
+/* Pan touch */
 let touchPan = { active:false, id:null, startClientX:0, startClientY:0, startPanX:0, startPanY:0 };
 workspace.addEventListener('touchstart', e=>{
   if(e.touches.length === 1){
@@ -224,7 +216,6 @@ workspace.addEventListener('touchstart', e=>{
     }
   }
 }, { passive:false });
-
 workspace.addEventListener('touchmove', e=>{
   if(!touchPan.active) return;
   for(let i=0;i<e.touches.length;i++){
@@ -240,29 +231,38 @@ workspace.addEventListener('touchmove', e=>{
     }
   }
 }, { passive:false });
-
 workspace.addEventListener('touchend', e=>{
   if(!touchPan.active) return;
   let still=false;
   for(let i=0;i<e.touches.length;i++){
     if(e.touches[i].identifier === touchPan.id) still=true;
   }
-  if(!still) {
-    touchPan.active=false;
-    touchPan.id=null;
-  }
+  if(!still) { touchPan.active=false; touchPan.id=null; }
 });
 
-components.forEach(comp => comp.addEventListener("dragstart", e=>e.dataTransfer.setData("type", comp.dataset.type)));
-canvas.addEventListener("dragover", e=>e.preventDefault());
-canvas.addEventListener("drop", e=>{
+/* -------- FIX DnD: usar MIME estándar + propio -------- */
+components.forEach(comp => comp.addEventListener('dragstart', (e) => {
+  const t = comp.dataset.type;
+  e.dataTransfer.setData('application/x-simupasir', t);
+  e.dataTransfer.setData('text/plain', t);
+  e.dataTransfer.effectAllowed = 'copy';
+}));
+
+canvas.addEventListener('dragover', (e) => {
   e.preventDefault();
-  if(simulation) return;
-  const type = e.dataTransfer.getData("type");
+  e.dataTransfer.dropEffect = 'copy';
+});
+
+canvas.addEventListener('drop', (e) => {
+  e.preventDefault();
+  if (simulation) return;
+  const type = e.dataTransfer.getData('application/x-simupasir') || e.dataTransfer.getData('text/plain');
+  if (!type) { console.warn('No llegó el tipo de componente en el drop.'); return; }
   const pos = clientToWorkspace(e.clientX, e.clientY);
   createNode(type, pos.x, pos.y);
 });
 
+/* selección */
 function selectNode(node){ if(simulation) return; clearSelection(); selectedNode=node; node.el.classList.add('selected'); }
 function selectConnection(conn){ if(simulation) return; clearSelection(); selectedConn=conn; conn.selected=true; if(conn.path) conn.path.classList.add('selected'); renderConnection(conn); }
 function clearSelection(){
@@ -272,9 +272,12 @@ function clearSelection(){
 }
 function hideAllBendHandles(){ connections.forEach(conn=>{ if(conn.handles){ conn.handles.forEach(h=>h.remove()); conn.handles = []; } }); }
 
+/* crear nodo */
 function createNode(type, x, y){
+  // Blindaje: si no llega el type por DnD, no rompemos
+  if (!type) type = 'and';
   const div = document.createElement('div'); div.className='node'; div.style.left = x + 'px'; div.style.top = y + 'px';
-  let name = type.toUpperCase();
+  let name = (type || 'G').toUpperCase();
   if(type==='input') name = `I${++inputCount}`;
   if(type==='output') name = `Q${++outputCount}`;
   if(type==='M') name = `M${++memoryCount}`;
@@ -325,6 +328,7 @@ function createNode(type, x, y){
   updateConnections();
 }
 
+/* mover nodos */
 function dragMove(el,node){
   let sx, sy, ix, iy, dragging=false;
   el.addEventListener('mousedown', e=>{
@@ -370,6 +374,7 @@ function dragMove(el,node){
   }
 }
 
+/* habilitar conexiones */
 function enableConnections(node){
   const handler = el => {
     if(simulation) return;
@@ -384,6 +389,8 @@ function enableConnections(node){
   if(node.output) node.output.addEventListener('click', ()=>handler(node.output));
   node.inputs.forEach(inp => inp.addEventListener('click', ()=>handler(inp)));
 }
+
+/* crear conexión */
 function createConnection(fromTerm, toTerm){
   if(simulation) return;
   if(connections.find(c => c.from === fromTerm && c.to === toTerm)) return;
@@ -391,6 +398,8 @@ function createConnection(fromTerm, toTerm){
   connections.push(conn);
   renderConnection(conn);
 }
+
+/* dibujar conexión */
 function renderConnection(conn){
   if(conn.path){ conn.path.remove(); conn.path = null; }
   if(conn.handles){ conn.handles.forEach(h=>h.remove()); conn.handles = []; }
@@ -485,7 +494,6 @@ function renderConnection(conn){
       c.addEventListener('click', ev=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); c.classList.add('selected'); });
     });
   }
-
   updatePinsVisual(conn, srcVal);
 }
 
@@ -597,6 +605,7 @@ function scanLogic(){
   });
   updateConnections();
 }
+
 document.getElementById('simulate').addEventListener('click', ()=>{
   if(simulation) return;
   clearSelection();
@@ -621,6 +630,7 @@ document.getElementById('deleteBtn').addEventListener('click', ()=>{
     return;
   }
 });
+
 document.addEventListener('keydown', (e)=>{
   if(e.key === 'Delete' || e.key === 'Backspace'){
     if(simulation) return;
@@ -633,14 +643,16 @@ document.addEventListener('keydown', (e)=>{
     }
   }
 });
+
 workspace.addEventListener('click', (e)=>{
   if(e.target === workspace){
     clearSelection();
     hideAllBendHandles();
   }
 });
+
 updateConnections();
-console.log("SIMUPASIR R8 listo.");
+console.log("SIMUPASIR R8 listo — PWA + Fix DnD.");
 
 /* ------------ PWA: registro del Service Worker ------------ */
 if ('serviceWorker' in navigator) {
@@ -672,15 +684,15 @@ installBtn.addEventListener('click', async () => {
   installBtn.hidden = true;
 });
 
-/* iOS: sugerir “Añadir a pantalla de inicio” si es Safari */
+/* iOS: sugerencia */
 (function(){
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
   if (isIOS && !isStandalone) {
-    // Opcional: podrías mostrar una pista propia para iOS
     console.log('En iOS usa “Compartir → Añadir a pantalla de inicio”.');
   }
 })();
 </script>
 </body>
 </html>
+
