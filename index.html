@@ -28,7 +28,7 @@
   html,body { height:100%; }
   body { margin:0; font-family: Inter, Arial, Helvetica, sans-serif; display:flex; height:100vh; overflow:hidden; background:#fff; }
 
-  /* Sidebar (se oculta en móvil, pero ahora hay un selector táctil) */
+  /* Sidebar (PC) */
   #sidebar { width:220px; background:var(--sidebar); padding:12px; border-right:3px solid #bdb089; display:flex; flex-direction:column; gap:10px; box-sizing:border-box; z-index:60; }
   .component { background:var(--node); border:2px solid #7a7a7a; border-radius:8px; padding:8px; text-align:center; cursor:grab; user-select:none; font-weight:700; box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
   .component.selected{ outline:3px solid #0078d7; outline-offset:2px; }
@@ -57,17 +57,17 @@
   #wires { position:absolute; top:0; left:0; width:var(--workspace-size); height:var(--workspace-size); pointer-events:auto; z-index:6; }
   .wire-path { fill:none; stroke:var(--wire); stroke-width:2; cursor:pointer; vector-effect:non-scaling-stroke; pointer-events:stroke; }
   .wire-path.signal { stroke:var(--neon); stroke-width:3; filter: drop-shadow(0 0 8px rgba(0,255,102,0.25)); }
-  .wire-path.selected { stroke-width:3; stroke:#0078d7; }
+  .wire-path.selected { stroke:#0078d7; stroke-width:3; } /* Azul cuando está seleccionado */
   .wire-path.ghost { stroke-dasharray:6 6; opacity:.7; }
 
   .bend-handle { fill:#fff; stroke:#333; stroke-width:1.5px; r:6; cursor:grab; pointer-events:all; }
   .bend-handle.selected { stroke:#0078d7; stroke-width:2.5px; fill:#e6f3ff; }
 
-  /* Controles */
+  /* Controles SIEMPRE visibles */
   #controls {
     position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
     background:var(--sidebar); padding:8px 12px; border-radius:10px; border:2px solid #bdb089;
-    display:flex; gap:10px; align-items:center; z-index:200; /* alto para que NO quede detrás de nada */
+    display:flex; gap:10px; align-items:center; z-index:200;
   }
   #controls button { padding:8px 10px; border-radius:8px; border:1px solid #777; background:#fff; font-weight:700; cursor:pointer; }
   #zoomIn, #zoomOut { padding:6px 10px; }
@@ -141,7 +141,7 @@
       <svg id="wires" xmlns="http://www.w3.org/2000/svg" width="5000" height="5000" viewBox="0 0 5000 5000" preserveAspectRatio="none"></svg>
     </div>
 
-    <!-- Controles SIEMPRE visibles -->
+    <!-- Controles -->
     <div id="controls">
       <button id="simulate">Simular</button>
       <button id="stop">Detener</button>
@@ -227,8 +227,7 @@ let inputCount=0, outputCount=0, memoryCount=0;
 let scale=1, panX=0, panY=0, isPanning=false, panStartX=0, panStartY=0;
 let simTimer=null, SCAN_MS=60;
 let selectedNode=null, selectedConn=null, draggingBend=null;
-let paletteSelected=null, paletteHintEl=null;
-let currentToPlace=null; // ← tipo elegido desde el picker o sidebar
+let currentToPlace=null;
 
 /* Cliente -> workspace */
 function clientToWorkspace(clientX, clientY){
@@ -352,19 +351,40 @@ canvas.addEventListener("drop", e=>{
   createNode(type, pos.x, pos.y);
 });
 canvas.addEventListener('click', e=>{
-  // Si hay tipo elegido (desde picker o sidebar), colocar en el toque
   if((e.target===workspace || e.target===wiresSVG) && currentToPlace){
     const pos = clientToWorkspace(e.clientX, e.clientY);
     createNode(currentToPlace, pos.x, pos.y);
   }
 });
 
-/* Selección */
+/* Selección, borrado de conexiones */
+function removeConnection(conn){
+  if(!conn) return;
+  const idx = connections.indexOf(conn);
+  if(idx >= 0) connections.splice(idx, 1);
+  if(conn.path){ try{ conn.path.remove(); }catch(_){ } conn.path = null; }
+  if(conn.handles && conn.handles.length){
+    conn.handles.forEach(h=>{ try{ h.remove(); }catch(_){ } });
+    conn.handles = [];
+  }
+  if(selectedConn === conn) selectedConn = null;
+  updateConnections();
+}
+function selectConnection(conn){
+  if(simulation) return;
+  if(selectedConn && selectedConn.path){ selectedConn.path.classList.remove('selected'); }
+  clearSelection();
+  selectedConn = conn; conn.selected = true;
+  if(conn.path) conn.path.classList.add('selected');
+  renderConnection(conn);
+}
 function selectNode(node){ if(simulation) return; clearSelection(); selectedNode=node; node.el.classList.add('selected'); }
-function selectConnection(conn){ if(simulation) return; clearSelection(); selectedConn=conn; conn.selected=true; if(conn.path) conn.path.classList.add('selected'); renderConnection(conn); }
 function clearSelection(){
   if(selectedNode){ selectedNode.el.classList.remove('selected'); selectedNode=null; }
-  if(selectedConn){ if(selectedConn.path) selectedConn.path.classList.remove('selected'); selectedConn.selected=false; selectedConn=null; }
+  if(selectedConn){
+    if(selectedConn.path) selectedConn.path.classList.remove('selected');
+    selectedConn.selected=false; selectedConn=null;
+  }
   connections.forEach(c=>{ if(c.handles) c.handles.forEach(h=>h.remove()); c.handles=[]; });
 }
 
@@ -547,12 +567,17 @@ function renderConnection(conn){
   const path = document.createElementNS("http://www.w3.org/2000/svg","path");
   path.setAttribute("d", d);
   path.setAttribute("class", "wire-path");
+  if (conn.selected) path.classList.add('selected'); // mantener azul si estaba seleccionado
 
   const srcVal = getSourceNodeValue(conn);
   if(srcVal === 1) path.classList.add('signal'); else path.classList.remove('signal');
 
-  path.addEventListener('click', ev=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); });
-  path.addEventListener('contextmenu', ev=>{ ev.preventDefault(); if(simulation) return; const idx = connections.indexOf(conn); if(idx >= 0) connections.splice(idx,1); clearSelection(); updateConnections(); });
+  // Selección
+  path.addEventListener('click', (ev)=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); });
+  path.addEventListener('touchstart', (ev)=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); }, { passive:true });
+
+  // Borrar con click derecho (desktop)
+  path.addEventListener('contextmenu', (ev)=>{ ev.preventDefault(); if(simulation) return; removeConnection(conn); });
 
   wiresSVG.appendChild(path);
   conn.path = path;
@@ -576,8 +601,12 @@ function updateConnections(){ connections.forEach(c=>renderConnection(c)); }
 /* Eliminar nodo + conexiones */
 function removeNode(node){
   if(simulation) return;
+  if(selectedConn && (selectedConn.from === node.output || node.inputs.includes(selectedConn.to))){
+    selectedConn = null;
+  }
   connections = connections.filter(c => c.from !== node.output && !node.inputs.includes(c.to));
-  node.el.remove(); nodes = nodes.filter(n => n !== node);
+  try{ node.el.remove(); }catch(_){}
+  nodes = nodes.filter(n => n !== node);
   clearSelection(); updateConnections();
 }
 
@@ -647,11 +676,7 @@ document.getElementById('stop').addEventListener('click', ()=>{
 document.getElementById('deleteBtn').addEventListener('click', ()=>{
   if(simulation) return;
   if(selectedNode){ removeNode(selectedNode); return; }
-  if(selectedConn){
-    const idx = connections.indexOf(selectedConn);
-    if(idx >= 0) connections.splice(idx,1);
-    clearSelection(); updateConnections();
-  }
+  if(selectedConn){ removeConnection(selectedConn); return; }
 });
 
 /* Borrar con Supr/Backspace en desktop */
@@ -659,11 +684,7 @@ document.addEventListener('keydown', (e)=>{
   if(e.key === 'Delete' || e.key === 'Backspace'){
     if(simulation) return;
     if(selectedNode) removeNode(selectedNode);
-    else if(selectedConn){
-      const idx = connections.indexOf(selectedConn);
-      if(idx >= 0) connections.splice(idx,1);
-      clearSelection(); updateConnections();
-    }
+    else if(selectedConn) removeConnection(selectedConn);
   }
 });
 
