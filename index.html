@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>SIMUPASIR — móvil</title>
 
-<!-- PWA (rutas relativas para GitHub Pages / hosting estático) -->
+<!-- PWA (rutas relativas) -->
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#003366">
 <link rel="icon" href="./icons/icon-192.png">
@@ -21,19 +21,33 @@
     --wire:#000;
     --neon:#00ff66;
     --accent:#444;
+
     /* Pines: visible 24x7, pero con hitbox alto 28px */
-    --pin-long:24px;           /* largo visible 24px (izq/der del bloque) */
-    --pin-hit-h:28px;          /* alto del hitbox real */
-    --pin-visible-h:7px;       /* alto visible de la “línea” */
+    --pin-long:24px;           /* largo visible 24px */
+    --pin-hit-h:28px;          /* alto del hitbox real (tacto) */
+    --pin-visible-h:7px;       /* alto visible de la línea */
     --workspace-size:5000px;
   }
 
   html,body { height:100%; }
   body { margin:0; font-family: Inter, Arial, Helvetica, sans-serif; display:flex; height:100vh; overflow:hidden; background:#fff; }
 
-  /* Sidebar (PC) */
-  #sidebar { width:220px; background:var(--sidebar); padding:12px; border-right:3px solid #bdb089; display:flex; flex-direction:column; gap:10px; box-sizing:border-box; z-index:60; }
-  .component { background:var(--node); border:2px solid #7a7a7a; border-radius:8px; padding:8px; text-align:center; cursor:grab; user-select:none; font-weight:700; box-shadow: 0 2px 0 rgba(0,0,0,0.06); }
+  /* Sidebar más angosto */
+  #sidebar {
+    width:150px;               /* antes 220px */
+    background:var(--sidebar);
+    padding:10px;
+    border-right:3px solid #bdb089;
+    display:flex; flex-direction:column; gap:8px;
+    box-sizing:border-box; z-index:60;
+  }
+  #sidebar > div[style*="font-weight"] { font-size:13px; }
+  .component {
+    background:var(--node); border:2px solid #7a7a7a; border-radius:8px;
+    padding:6px; text-align:center; cursor:grab; user-select:none; font-weight:700;
+    font-size:12px; line-height:1.05;
+    box-shadow: 0 2px 0 rgba(0,0,0,0.06);
+  }
   .component.selected{ outline:3px solid #0078d7; outline-offset:2px; }
 
   /* Canvas & workspace */
@@ -47,24 +61,28 @@
     text-align:center; cursor:move; user-select:none; padding:8px; box-sizing:border-box;
     box-shadow: 0 6px 0 rgba(0,0,0,0.06); z-index:10; touch-action:none;
   }
-  .label { font-weight:900; margin-bottom:6px; pointer-events:none; font-size:14px; color:#222; }
+  .label {
+    font-weight:900; margin-bottom:6px; pointer-events:none; color:#222;
+    font-size:18px;              /* nombres más grandes */
+  }
+  @media (max-width:720px){ .label{ font-size:16px; } }
   .selected { box-shadow: 0 10px 18px rgba(0,0,0,0.12); border-color:#0058a3!important; transform: translateY(-2px); }
 
   /* Pines: el elemento es el HITBOX; la línea visible va en ::before */
   .terminal {
     position:absolute; cursor:pointer; border-radius:8px; box-shadow:0 1px 0 rgba(0,0,0,0.08);
     height:var(--pin-hit-h);               /* hitbox alto (grande para dedo) */
-    background:transparent;                /* sin color visible aquí */
+    background:transparent;
   }
   .terminal::before{
     content:""; position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
     height:var(--pin-visible-h); border-radius:4px; background:var(--pin);
     display:block;
   }
-  .terminal.input { width:var(--pin-long); left: calc(-1 * var(--pin-long)); }
+  .terminal.input  { width:var(--pin-long); left: calc(-1 * var(--pin-long)); }
   .terminal.output { width:var(--pin-long); right: calc(-1 * var(--pin-long)); top:50%; transform: translateY(-50%); }
 
-  /* Colores de estado del pin (aplican a la “línea” visible) */
+  /* Estados del pin */
   .terminal.pin-selected::before { background:#0078d7 !important; box-shadow:0 0 0 3px rgba(0,120,215,.25); }
   .terminal.pin-target { outline:2px solid #0078d7; outline-offset:2px; }
   .terminal.signal-on::before { background:var(--neon) !important; }
@@ -86,9 +104,9 @@
   .wire-path.selected { stroke:#0078d7; stroke-width:6; }
   .wire-path.ghost { stroke-dasharray:6 6; opacity:.75; }
 
-  /* Handles más grandes (r=9) para mover bends con el dedo */
-  .bend-handle { fill:#fff; stroke:#333; stroke-width:1.5px; r:9; cursor:grab; pointer-events:all; }
-  .bend-handle.selected { stroke:#0078d7; stroke-width:2.5px; fill:#e6f3ff; }
+  /* Handles (nodos de curva) bien visibles y cómodos */
+  .bend-handle { fill:#fff; stroke:#0078d7; stroke-width:2.5px; r:11; cursor:grab; pointer-events:all; }
+  .bend-handle.dragging { fill:#e6f3ff; }
 
   /* Controles */
   #controls {
@@ -138,7 +156,7 @@
     <div class="component" draggable="true" data-type="input">Entrada (I)</div>
     <div class="component" draggable="true" data-type="output">Salida (Q)</div>
     <div class="component" draggable="true" data-type="M">Memoria (M)</div>
-    <div style="height:8px"></div>
+    <div style="height:4px"></div>
     <div class="component" draggable="true" data-type="and">AND</div>
     <div class="component" draggable="true" data-type="or">OR</div>
     <div class="component" draggable="true" data-type="not">NOT</div>
@@ -146,10 +164,10 @@
     <div class="component" draggable="true" data-type="nor">NOR</div>
     <div class="component" draggable="true" data-type="xor">XOR</div>
     <div class="component" draggable="true" data-type="xnor">XNOR</div>
-    <div style="height:8px"></div>
+    <div style="height:4px"></div>
     <div class="component" draggable="true" data-type="sr">SR (Set/Reset)</div>
     <div style="flex:1"></div>
-    <div style="font-size:12px;color:#333">Arrastra (PC) o usa “＋ Añadir” (móvil). Conectar: salida → entrada.</div>
+    <div style="font-size:11px;color:#333">Arrastra (PC) o usa “＋ Añadir” (móvil). Conecta: salida → entrada.</div>
   </div>
 
   <div id="canvas">
@@ -170,7 +188,7 @@
     <div class="hint">
       - Pan con un dedo. Pellizca para zoom. <br>
       - Toca salida (pin azul) → entrada para conectar. <br>
-      - Mantén presionado un cable para agregar un nodo y acomodarlo. <br>
+      - Mantén presionado un cable para agregar un nodo y muévelo de inmediato. <br>
       - Toca el fondo para des-seleccionar.
     </div>
   </div>
@@ -244,7 +262,9 @@ let simulation = false;
 let inputCount=0, outputCount=0, memoryCount=0;
 let scale=1, panX=0, panY=0, isPanning=false, panStartX=0, panStartY=0;
 let simTimer=null, SCAN_MS=60;
-let selectedNode=null, selectedConn=null, draggingBend=null;
+let selectedNode=null, selectedConn=null;
+let draggingBend=null;
+let longPressTimer=null;
 let currentToPlace=null;
 let selectedPinEl = null; // pin origen marcado
 
@@ -405,6 +425,7 @@ function clearSelection(){
   if(selectedConn){ if(selectedConn.path) selectedConn.path.classList.remove('selected'); selectedConn.selected=false; selectedConn=null; }
   if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
   pendingOutput = null; removeGhost();
+  if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; }
   connections.forEach(c=>{ if(c.handles) c.handles.forEach(h=>h.remove()); c.handles=[]; });
 }
 
@@ -576,6 +597,49 @@ function updateGhostPath(path,sx,sy,ex,ey){
   path.setAttribute('d',`M${sx},${sy} L${midX},${sy} L${midX},${ey} L${ex},${ey}`);
 }
 
+/* ====== Bend helpers: arrastre inmediato ====== */
+function startDraggingHandle(conn, index){
+  // marca visual
+  if(conn.handles && conn.handles[index]){
+    conn.handles[index].classList.add('dragging');
+  }
+  draggingBend = { conn, index };
+  // listeners globales (mouse)
+  document.addEventListener('mousemove', onBendMove);
+  document.addEventListener('mouseup', stopDraggingHandle);
+  // listeners táctiles
+  document.addEventListener('touchmove', onBendMoveTouch, {passive:false});
+  document.addEventListener('touchend', stopDraggingHandle, {passive:true});
+}
+function stopDraggingHandle(){
+  if(!draggingBend) return;
+  const { conn, index } = draggingBend;
+  if(conn.handles && conn.handles[index]) conn.handles[index].classList.remove('dragging');
+  draggingBend = null;
+  document.removeEventListener('mousemove', onBendMove);
+  document.removeEventListener('mouseup', stopDraggingHandle);
+  document.removeEventListener('touchmove', onBendMoveTouch);
+  document.removeEventListener('touchend', stopDraggingHandle);
+}
+function onBendMove(ev){
+  if(!draggingBend) return;
+  const pos = clientToWorkspace(ev.clientX, ev.clientY);
+  const { conn, index } = draggingBend;
+  conn.bends[index].x = pos.x;
+  conn.bends[index].y = pos.y;
+  renderConnection(conn);
+}
+function onBendMoveTouch(ev){
+  if(!draggingBend) return;
+  ev.preventDefault();
+  const t = ev.touches[0];
+  const pos = clientToWorkspace(t.clientX, t.clientY);
+  const { conn, index } = draggingBend;
+  conn.bends[index].x = pos.x;
+  conn.bends[index].y = pos.y;
+  renderConnection(conn);
+}
+
 /* Crear y dibujar conexión (con hitbox) */
 function createConnection(fromTerm, toTerm){
   if(simulation) return;
@@ -624,31 +688,35 @@ function renderConnection(conn){
   hit.addEventListener('touchstart', onSelect, {passive:true});
   hit.addEventListener('contextmenu', (ev)=>{ ev.preventDefault(); if(simulation) return; removeConnection(conn); });
 
-  // Long press (0.5s) para agregar bend (nodo)
-  let longPressTimer=null;
+  // Long press (0.5s) para agregar bend y ARRÁSTRALO YA
   function onPathDown(ev){
     if(simulation) return;
     if(ev.type==='mousedown' && ev.button!==0) return;
     ev.stopPropagation();
-    longPressTimer=setTimeout(()=>{
+    if(longPressTimer){ clearTimeout(longPressTimer); }
+    longPressTimer = setTimeout(()=>{
       const clientX = (ev.type==='mousedown') ? ev.clientX : (ev.touches?.[0]?.clientX ?? ev.clientX);
       const clientY = (ev.type==='mousedown') ? ev.clientY : (ev.touches?.[0]?.clientY ?? ev.clientY);
       const pos = clientToWorkspace(clientX, clientY);
+      // crear bend
       conn.bends.push({ x: pos.x, y: pos.y });
       orderBends(conn);
+      selectConnection(conn);        // asegura handles visibles
       renderConnection(conn);
-      selectConnection(conn);
+      // buscar el índice del bend recién creado (el de x más cercano a pos.x)
+      let idx = 0, best = 1e9;
+      conn.bends.forEach((b,i)=>{ const d=Math.hypot(b.x-pos.x,b.y-pos.y); if(d<best){best=d; idx=i;} });
+      // iniciar arrastre inmediato
+      startDraggingHandle(conn, idx);
     }, 500);
-    document.addEventListener('mouseup', onPathUpOnce);
-    document.addEventListener('touchend', onPathUpOnce, {passive:true});
-  }
-  function onPathUpOnce(){
-    if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; }
-    document.removeEventListener('mouseup', onPathUpOnce);
-    document.removeEventListener('touchend', onPathUpOnce);
+    const cancelLP = ()=>{ if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; } };
+    document.addEventListener('mouseup', cancelLP, {once:true});
+    document.addEventListener('touchend', cancelLP, {once:true, passive:true});
   }
   path.addEventListener('mousedown', onPathDown);
   path.addEventListener('touchstart', onPathDown, {passive:false});
+  hit .addEventListener('mousedown', onPathDown);
+  hit .addEventListener('touchstart', onPathDown, {passive:false});
 
   // Orden: primero hit, luego path
   wiresSVG.appendChild(hit);
@@ -657,6 +725,31 @@ function renderConnection(conn){
   conn.hit  = hit;
   conn.path = path;
 
+  // Si está seleccionada, dibuja handles
+  if(conn.selected && !simulation){
+    conn.handles = [];
+    conn.bends.forEach((b, idx)=>{
+      const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
+      c.setAttribute("cx", b.x);
+      c.setAttribute("cy", b.y);
+      c.setAttribute("r", 11);
+      c.setAttribute("class", "bend-handle");
+      wiresSVG.appendChild(c);
+      conn.handles.push(c);
+
+      c.addEventListener('mousedown', ev=>{
+        if(simulation) return;
+        ev.stopPropagation();
+        startDraggingHandle(conn, idx);
+      });
+      c.addEventListener('touchstart', ev=>{
+        if(simulation) return;
+        ev.stopPropagation();
+        startDraggingHandle(conn, idx);
+      }, {passive:true});
+    });
+  }
+
   updatePinsVisual(conn, srcVal);
 }
 function orderBends(conn){
@@ -664,10 +757,7 @@ function orderBends(conn){
   const asc = s.x <= e.x; conn.bends.sort((a,b)=> asc?a.x-b.x:b.x-a.x);
 }
 function updatePinsVisual(conn, srcVal){
-  // ahora usamos clases para pintar la “línea” del pin (::before)
-  try{
-    conn.from.classList.toggle('signal-on', srcVal===1);
-  }catch(e){}
+  try{ conn.from.classList.toggle('signal-on', srcVal===1); }catch(e){}
   const srcNode = nodes.find(n=>n.output===conn.from);
   if(srcNode && srcNode.qIndicator){ srcNode.qIndicator.classList.toggle('on', srcVal===1); }
 }
@@ -724,7 +814,6 @@ function scanLogic(){
   nodes.forEach(n=>{
     if(n.type === 'input' || n.type === 'output' || n.type === 'M'){
       n.el.classList.toggle('active', n.value === 1);
-      // pintar pin de salida con señal
       if(n.output) n.output.classList.toggle('signal-on', n.value===1);
     } else n.el.classList.remove('active');
     if(n.qIndicator) n.qIndicator.classList.toggle('on', n.value===1);
@@ -770,7 +859,7 @@ window.addEventListener('resize', updateConnections);
 
 /* Iniciar */
 updateConnections();
-console.log("SIMUPASIR móvil: cable 5/6px + hitbox 40px, pines visibles 24x7 con hitbox 28px, long-press para nodos.");
+console.log("SIMUPASIR: bends con arrastre inmediato, labels grandes, sidebar angosto.");
 </script>
 </body>
 </html>
