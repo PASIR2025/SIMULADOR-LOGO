@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>SIMUPASIR — móvil</title>
 
-<!-- PWA (rutas relativas) -->
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#003366">
 <link rel="icon" href="./icons/icon-192.png">
@@ -22,19 +21,18 @@
     --neon:#00ff66;
     --accent:#444;
 
-    /* Pines: visible 24x7, pero con hitbox alto 28px */
-    --pin-long:24px;           /* largo visible 24px */
-    --pin-hit-h:28px;          /* alto del hitbox real (tacto) */
-    --pin-visible-h:7px;       /* alto visible de la línea */
+    --pin-long:24px;          /* largo visible 24px */
+    --pin-hit-h:28px;         /* alto del hitbox real (tacto) */
+    --pin-visible-h:7px;      /* alto visible de la línea */
     --workspace-size:5000px;
   }
 
   html,body { height:100%; }
   body { margin:0; font-family: Inter, Arial, Helvetica, sans-serif; display:flex; height:100vh; overflow:hidden; background:#fff; }
 
-  /* Sidebar más angosto */
+  /* Sidebar angosto, textos 20px */
   #sidebar {
-    width:150px;               /* antes 220px */
+    width:150px;
     background:var(--sidebar);
     padding:10px;
     border-right:3px solid #bdb089;
@@ -42,11 +40,18 @@
     box-sizing:border-box; z-index:60;
   }
   #sidebar > div[style*="font-weight"] { font-size:13px; }
-  .component {
-    background:var(--node); border:2px solid #7a7a7a; border-radius:8px;
-    padding:6px; text-align:center; cursor:grab; user-select:none; font-weight:700;
-    font-size:12px; line-height:1.05;
-    box-shadow: 0 2px 0 rgba(0,0,0,0.06);
+  .component{
+    background:var(--node);
+    border:2px solid #7a7a7a;
+    border-radius:8px;
+    padding:6px;
+    text-align:center;
+    cursor:grab;
+    user-select:none;
+    font-weight:700;
+    font-size:20px;            /* ← pedido: 20px en biblioteca */
+    line-height:1.05;
+    box-shadow:0 2px 0 rgba(0,0,0,.06);
   }
   .component.selected{ outline:3px solid #0078d7; outline-offset:2px; }
 
@@ -54,96 +59,68 @@
   #canvas { flex:1; background:#ffffff; position:relative; overflow:hidden; touch-action:none; }
   #workspace { position:absolute; top:0; left:0; width:var(--workspace-size); height:var(--workspace-size); transform-origin:0 0; background:transparent; }
 
-  /* Nodo */
-  .node {
+  /* Bloques */
+  .node{
     position:absolute; background:var(--node); border:3px solid var(--accent); border-radius:10px;
     width:150px; height:225px; display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; cursor:move; user-select:none; padding:8px; box-sizing:border-box;
-    box-shadow: 0 6px 0 rgba(0,0,0,0.06); z-index:10; touch-action:none;
+    box-shadow:0 6px 0 rgba(0,0,0,0.06); z-index:10; touch-action:none;
   }
-  .label {
+  .label{
     font-weight:900; margin-bottom:6px; pointer-events:none; color:#222;
-    font-size:18px;              /* nombres más grandes */
+    font-size:100px;           /* ← pedido: 100px en nombres de bloques */
+    line-height:1;             /* compacta para caber mejor */
   }
-  @media (max-width:720px){ .label{ font-size:16px; } }
-  .selected { box-shadow: 0 10px 18px rgba(0,0,0,0.12); border-color:#0058a3!important; transform: translateY(-2px); }
+  .selected{ box-shadow:0 10px 18px rgba(0,0,0,.12); border-color:#0058a3!important; transform:translateY(-2px); }
 
-  /* Pines: el elemento es el HITBOX; la línea visible va en ::before */
-  .terminal {
-    position:absolute; cursor:pointer; border-radius:8px; box-shadow:0 1px 0 rgba(0,0,0,0.08);
-    height:var(--pin-hit-h);               /* hitbox alto (grande para dedo) */
-    background:transparent;
-  }
+  /* Pines con hitbox grande e indicador azul al seleccionar */
+  .terminal{ position:absolute; cursor:pointer; border-radius:8px; box-shadow:0 1px 0 rgba(0,0,0,.08); height:var(--pin-hit-h); background:transparent; }
   .terminal::before{
     content:""; position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
-    height:var(--pin-visible-h); border-radius:4px; background:var(--pin);
-    display:block;
+    height:var(--pin-visible-h); border-radius:4px; background:var(--pin); display:block;
   }
-  .terminal.input  { width:var(--pin-long); left: calc(-1 * var(--pin-long)); }
-  .terminal.output { width:var(--pin-long); right: calc(-1 * var(--pin-long)); top:50%; transform: translateY(-50%); }
-
-  /* Estados del pin */
+  .terminal.input  { width:var(--pin-long); left:calc(-1 * var(--pin-long)); }
+  .terminal.output { width:var(--pin-long); right:calc(-1 * var(--pin-long)); top:50%; transform:translateY(-50%); }
   .terminal.pin-selected::before { background:#0078d7 !important; box-shadow:0 0 0 3px rgba(0,120,215,.25); }
   .terminal.pin-target { outline:2px solid #0078d7; outline-offset:2px; }
   .terminal.signal-on::before { background:var(--neon) !important; }
+  .term-label{ position:absolute; left:calc(-1 * var(--pin-long) - 36px); width:40px; text-align:right; font-size:12px; color:#222; user-select:none; }
 
-  .term-label { position:absolute; left:calc(-1 * var(--pin-long) - 36px); width:40px; text-align:right; font-size:12px; color:#222; user-select:none; }
+  /* Cables + hitbox muy cómodo */
+  #wires{ position:absolute; top:0; left:0; width:var(--workspace-size); height:var(--workspace-size); pointer-events:auto; z-index:6; }
+  .wire-hit{ fill:none; stroke:#000; stroke-width:40; stroke-opacity:0; vector-effect:non-scaling-stroke; pointer-events:stroke; stroke-linecap:round; }
+  .wire-path{ fill:none; stroke:var(--wire); stroke-width:5; vector-effect:non-scaling-stroke; pointer-events:stroke; }
+  .wire-path.signal{ stroke:var(--neon); stroke-width:6; filter:drop-shadow(0 0 8px rgba(0,255,102,.25)); }
+  .wire-path.selected{ stroke:#0078d7; stroke-width:6; }
+  .wire-path.ghost{ stroke-dasharray:6 6; opacity:.75; }
 
-  /* Cables */
-  #wires { position:absolute; top:0; left:0; width:var(--workspace-size); height:var(--workspace-size); pointer-events:auto; z-index:6; }
-
-  /* Hitbox invisible MUY grueso para tocar fácil (40px) */
-  .wire-hit{
-    fill:none; stroke:#000; stroke-width:40; stroke-opacity:0;
-    vector-effect:non-scaling-stroke; pointer-events:stroke; stroke-linecap:round;
-  }
-
-  /* Cable visible: 5px; 6px con señal o selección */
-  .wire-path { fill:none; stroke:var(--wire); stroke-width:5; cursor:pointer; vector-effect:non-scaling-stroke; pointer-events:stroke; }
-  .wire-path.signal { stroke:var(--neon); stroke-width:6; filter: drop-shadow(0 0 8px rgba(0,255,102,0.25)); }
-  .wire-path.selected { stroke:#0078d7; stroke-width:6; }
-  .wire-path.ghost { stroke-dasharray:6 6; opacity:.75; }
-
-  /* Handles (nodos de curva) bien visibles y cómodos */
-  .bend-handle { fill:#fff; stroke:#0078d7; stroke-width:2.5px; r:11; cursor:grab; pointer-events:all; }
-  .bend-handle.dragging { fill:#e6f3ff; }
+  /* Handles (nodos de cable): visibles y con mega-hitbox para arrastrar presionando el nodo */
+  .bend-handle{ fill:#fff; stroke:#0078d7; stroke-width:2.5px; r:11; cursor:grab; pointer-events:all; }
+  .bend-handle.dragging{ fill:#e6f3ff; }
+  .bend-hit{ fill:#000; fill-opacity:0; r:24; pointer-events:all; } /* ← hitbox invisible grande para tocar cómodo */
 
   /* Controles */
-  #controls {
+  #controls{
     position:fixed; bottom:12px; left:50%; transform:translateX(-50%);
     background:var(--sidebar); padding:8px 12px; border-radius:10px; border:2px solid #bdb089;
     display:flex; gap:10px; align-items:center; z-index:200;
   }
-  #controls button { padding:8px 10px; border-radius:8px; border:1px solid #777; background:#fff; font-weight:700; cursor:pointer; }
-  #zoomIn, #zoomOut { padding:6px 10px; }
+  #controls button{ padding:8px 10px; border-radius:8px; border:1px solid #777; background:#fff; font-weight:700; cursor:pointer; }
+  #zoomIn,#zoomOut{ padding:6px 10px; }
 
-  .q-indicator { width:18px; height:18px; border-radius:50%; background:#444; margin-top:8px; pointer-events:none; border:2px solid #222; }
-  .q-indicator.on { background:var(--neon); box-shadow:0 0 8px rgba(0,255,102,0.45); }
+  .q-indicator{ width:18px; height:18px; border-radius:50%; background:#444; margin-top:8px; pointer-events:none; border:2px solid #222; }
+  .q-indicator.on{ background:var(--neon); box-shadow:0 0 8px rgba(0,255,102,.45); }
 
-  .hint { position:absolute; right:12px; top:12px; background:rgba(0,0,0,0.05); padding:10px; border-radius:8px; font-size:13px; color:#222; width:320px; z-index:5; pointer-events:none; }
-  #brand { position:fixed; right:12px; bottom:12px; background:rgba(0,0,0,0.06); padding:8px 12px; border-radius:8px; font-weight:900; letter-spacing:1px; z-index:60; box-shadow: 0 6px 0 rgba(0,0,0,0.04); }
+  .hint{ position:absolute; right:12px; top:12px; background:rgba(0,0,0,.05); padding:10px; border-radius:8px; font-size:13px; color:#222; width:320px; z-index:5; pointer-events:none; }
+  #brand{ position:fixed; right:12px; bottom:12px; background:rgba(0,0,0,.06); padding:8px 12px; border-radius:8px; font-weight:900; letter-spacing:1px; z-index:60; box-shadow:0 6px 0 rgba(0,0,0,.04); }
 
-  /* Botón instalar */
-  #installBtn {
+  #installBtn{
     display:none; position:fixed; right:12px; bottom:80px; z-index:210;
-    background:#003366; color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:900; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,0.12);
+    background:#003366; color:#fff; border:none; padding:10px 14px; border-radius:10px; font-weight:900; cursor:pointer; box-shadow:0 6px 0 rgba(0,0,0,.12);
   }
-
-  /* FAB móvil (opcional) */
-  #mobileBar { position:fixed; left:12px; bottom:12px; z-index:210; display:flex; gap:8px; align-items:center; }
-  #mobileAdd { border:none; border-radius:999px; padding:12px 14px; font-weight:900; background:#0078d7; color:white; box-shadow:0 6px 0 rgba(0,0,0,0.12); cursor:pointer; }
-
-  /* Menú de componentes (móvil) */
-  #picker { position:fixed; inset:0; background:rgba(0,0,0,.4); display:none; align-items:flex-end; z-index:220; }
-  #picker .sheet{ background:#fff; width:100%; border-radius:16px 16px 0 0; padding:12px; max-height:60vh; overflow:auto; box-shadow:0 -10px 30px rgba(0,0,0,.2); }
-  #picker h3 { margin:6px 0 10px; font-size:16px; }
-  #picker .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
-  #picker .item { background:#fff8dc; border:2px solid #7a7a7a; border-radius:10px; padding:10px; font-weight:900; text-align:center; cursor:pointer; }
-  #picker .close { margin-top:10px; width:100%; padding:10px; border-radius:10px; border:1px solid #aaa; background:#f6f6f6; font-weight:800; }
 
   @supports(padding:max(0px)){
     #controls { bottom: calc(12px + env(safe-area-inset-bottom)); }
-    #mobileBar { bottom: calc(12px + env(safe-area-inset-bottom)); }
     #installBtn { bottom: calc(80px + env(safe-area-inset-bottom)); }
   }
   @media (max-width:720px){ #sidebar { display:none; } }
@@ -167,7 +144,7 @@
     <div style="height:4px"></div>
     <div class="component" draggable="true" data-type="sr">SR (Set/Reset)</div>
     <div style="flex:1"></div>
-    <div style="font-size:11px;color:#333">Arrastra (PC) o usa “＋ Añadir” (móvil). Conecta: salida → entrada.</div>
+    <div style="font-size:11px;color:#333">Arrastra (PC) o toca el área para colocar. Conecta: salida → entrada.</div>
   </div>
 
   <div id="canvas">
@@ -175,7 +152,6 @@
       <svg id="wires" xmlns="http://www.w3.org/2000/svg" width="5000" height="5000" viewBox="0 0 5000 5000" preserveAspectRatio="none"></svg>
     </div>
 
-    <!-- Controles -->
     <div id="controls">
       <button id="simulate">Simular</button>
       <button id="stop">Detener</button>
@@ -187,8 +163,8 @@
 
     <div class="hint">
       - Pan con un dedo. Pellizca para zoom. <br>
-      - Toca salida (pin azul) → entrada para conectar. <br>
-      - Mantén presionado un cable para agregar un nodo y muévelo de inmediato. <br>
+      - Toca salida (pin azul) → entrada. <br>
+      - Mantén presionado un cable para agregar un nodo y **arrástralo directamente**. <br>
       - Toca el fondo para des-seleccionar.
     </div>
   </div>
@@ -196,69 +172,22 @@
   <div id="brand">SIMUPASIR</div>
   <button id="installBtn">Instalar SIMUPASIR</button>
 
-  <!-- FAB móvil -->
-  <div id="mobileBar">
-    <button id="mobileAdd">＋ Añadir</button>
-  </div>
-
-  <!-- Selector táctil de componentes -->
-  <div id="picker" aria-hidden="true">
-    <div class="sheet">
-      <h3>Agregar componente</h3>
-      <div class="grid" id="pickerGrid"></div>
-      <button class="close" id="pickerClose">Cerrar</button>
-    </div>
-  </div>
-
 <script>
 /* ===== PWA básico ===== */
-let deferredPrompt = null;
-const installBtn = document.getElementById('installBtn');
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'block';
-});
-installBtn.addEventListener('click', async () => {
-  if(!deferredPrompt) return;
-  deferredPrompt.prompt(); await deferredPrompt.userChoice;
-  installBtn.style.display = 'none'; deferredPrompt = null;
-});
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js')
-      .then(reg => console.log('SW scope:', reg.scope))
-      .catch(err => console.error('SW error:', err));
-  });
-}
+let deferredPrompt=null;
+const installBtn=document.getElementById('installBtn');
+window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; installBtn.style.display='block'; });
+installBtn.addEventListener('click', async()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; installBtn.style.display='none'; deferredPrompt=null; });
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./service-worker.js').catch(console.error); }); }
 
 /* ===== SIMUPASIR ===== */
 const canvas = document.getElementById("canvas");
 const workspace = document.getElementById("workspace");
 const wiresSVG = document.getElementById("wires");
 const components = document.querySelectorAll(".component");
-const mobileAddBtn = document.getElementById('mobileAdd');
-const picker = document.getElementById('picker');
-const pickerGrid = document.getElementById('pickerGrid');
-const pickerClose = document.getElementById('pickerClose');
 
-const MOBILE_ITEMS = [
-  ['input','Entrada (I)'],
-  ['output','Salida (Q)'],
-  ['M','Memoria (M)'],
-  ['and','AND'],['or','OR'],['not','NOT'],
-  ['nand','NAND'],['nor','NOR'],['xor','XOR'],['xnor','XNOR'],
-  ['sr','SR (Set/Reset)']
-];
-MOBILE_ITEMS.forEach(([type,label])=>{
-  const b=document.createElement('div');
-  b.className='item'; b.dataset.type=type; b.textContent=label;
-  b.onclick=()=>{ currentToPlace=type; picker.style.display='none'; picker.setAttribute('aria-hidden','true'); };
-  pickerGrid.appendChild(b);
-});
-pickerClose.onclick=()=>{ picker.style.display='none'; picker.setAttribute('aria-hidden','true'); };
-mobileAddBtn.onclick=()=>{ picker.style.display='flex'; picker.setAttribute('aria-hidden','false'); };
-
-let nodes = [], connections = [], pendingOutput = null, pendingGhost = null;
-let simulation = false;
+let nodes=[], connections=[], pendingOutput=null, pendingGhost=null;
+let simulation=false;
 let inputCount=0, outputCount=0, memoryCount=0;
 let scale=1, panX=0, panY=0, isPanning=false, panStartX=0, panStartY=0;
 let simTimer=null, SCAN_MS=60;
@@ -266,99 +195,82 @@ let selectedNode=null, selectedConn=null;
 let draggingBend=null;
 let longPressTimer=null;
 let currentToPlace=null;
-let selectedPinEl = null; // pin origen marcado
+let selectedPinEl=null;
 
-/* Cliente -> workspace */
+/* Coord utils */
 function clientToWorkspace(clientX, clientY){
   const rect = canvas.getBoundingClientRect();
-  return { x: (clientX - rect.left - panX) / scale, y: (clientY - rect.top - panY) / scale };
+  return { x:(clientX-rect.left-panX)/scale, y:(clientY-rect.top-panY)/scale };
 }
-
-/* Extremo del pin (usar workspace rect, FIX móvil) */
 function terminalEdge(term){
   const rect = term.getBoundingClientRect();
   const wsRect = workspace.getBoundingClientRect();
-  const isInput  = term.classList.contains('input');
-  const isOutput = term.classList.contains('output');
+  const isInput=term.classList.contains('input');
+  const isOutput=term.classList.contains('output');
   const xScreen = isInput ? rect.left : (isOutput ? rect.right : rect.left + rect.width/2);
   const yScreen = rect.top + rect.height/2;
-  return { x: (xScreen - wsRect.left) / scale, y: (yScreen - wsRect.top) / scale };
+  return { x:(xScreen-wsRect.left)/scale, y:(yScreen-wsRect.top)/scale };
 }
 
-/* Zoom (rueda + botones) */
-canvas.addEventListener("wheel", e=>{
-  e.preventDefault();
-  setZoom(scale + (e.deltaY > 0 ? -0.08 : 0.08));
-});
+/* Zoom & Pan */
+canvas.addEventListener("wheel", e=>{ e.preventDefault(); setZoom(scale + (e.deltaY>0?-0.08:0.08)); });
 function setZoom(next){
   const rect = canvas.getBoundingClientRect();
-  const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-  const fx = (cx - rect.left - panX) / scale;
-  const fy = (cy - rect.top  - panY) / scale;
-  const newScale = Math.max(0.25, Math.min(3, next));
-  panX = cx - rect.left - fx * newScale;
-  panY = cy - rect.top  - fy * newScale;
-  scale = newScale;
+  const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
+  const fx=(cx-rect.left-panX)/scale, fy=(cy-rect.top-panY)/scale;
+  const newScale = Math.max(.25, Math.min(3,next));
+  panX = cx-rect.left - fx*newScale; panY = cy-rect.top - fy*newScale; scale=newScale;
   updateTransform(); updateConnections();
 }
-document.getElementById('zoomIn').onclick  = ()=>setZoom(scale+0.12);
-document.getElementById('zoomOut').onclick = ()=>setZoom(scale-0.12);
-function updateTransform(){ workspace.style.transform = `translate(${panX}px,${panY}px) scale(${scale})`; }
+document.getElementById('zoomIn').onclick = ()=>setZoom(scale+0.12);
+document.getElementById('zoomOut').onclick= ()=>setZoom(scale-0.12);
+function updateTransform(){ workspace.style.transform=`translate(${panX}px,${panY}px) scale(${scale})`; }
 
-/* Pan mouse */
 workspace.addEventListener("mousedown", e=>{
-  if(e.target === workspace){
-    if(e.button === 0) clearSelection();   // des-seleccionar al tocar fondo
-    isPanning = true;
-    panStartX = e.clientX - panX; panStartY = e.clientY - panY;
-    document.addEventListener("mousemove", doPan);
-    document.addEventListener("mouseup", endPan);
+  if(e.target===workspace){
+    if(e.button===0) clearSelection();
+    isPanning=true; panStartX=e.clientX-panX; panStartY=e.clientY-panY;
+    document.addEventListener("mousemove",doPan); document.addEventListener("mouseup",endPan);
   }
 });
-function doPan(e){ if(!isPanning) return; panX = e.clientX - panStartX; panY = e.clientY - panStartY; updateTransform(); updateConnections(); }
-function endPan(){ isPanning=false; document.removeEventListener("mousemove", doPan); document.removeEventListener("mouseup", endPan); }
+function doPan(e){ if(!isPanning) return; panX=e.clientX-panStartX; panY=e.clientY-panStartY; updateTransform(); updateConnections(); }
+function endPan(){ isPanning=false; document.removeEventListener("mousemove",doPan); document.removeEventListener("mouseup",endPan); }
 
-/* Pan & Pinch touch */
-let touchPan = { active:false, id:null, startClientX:0, startClientY:0, startPanX:0, startPanY:0 };
-let pinch = { active:false, startDist:0, startScale:1, cx:0, cy:0 };
+/* Touch pan/pinch */
+let touchPan={active:false,id:null,startClientX:0,startClientY:0,startPanX:0,startPanY:0};
+let pinch={active:false,startDist:0,startScale:1,cx:0,cy:0};
 workspace.addEventListener('touchstart', e=>{
   if(e.touches.length===1 && !pinch.active){
     const t=e.touches[0];
-    const target = document.elementFromPoint(t.clientX, t.clientY);
+    const target=document.elementFromPoint(t.clientX,t.clientY);
     if(target===workspace || target===wiresSVG){
       touchPan={active:true,id:t.identifier,startClientX:t.clientX,startClientY:t.clientY,startPanX:panX,startPanY:panY};
-      clearSelection(); e.preventDefault(); // des-seleccionar al tocar fondo
+      clearSelection(); e.preventDefault();
     }
-  } else if (e.touches.length===2) {
-    pinch.active = true;
-    const dx=e.touches[1].clientX - e.touches[0].clientX;
-    const dy=e.touches[1].clientY - e.touches[0].clientY;
-    pinch.startDist = Math.hypot(dx,dy);
-    pinch.startScale = scale;
-    pinch.cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-    pinch.cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+  } else if(e.touches.length===2){
+    pinch.active=true;
+    const dx=e.touches[1].clientX-e.touches[0].clientX;
+    const dy=e.touches[1].clientY-e.touches[0].clientY;
+    pinch.startDist=Math.hypot(dx,dy); pinch.startScale=scale;
+    pinch.cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+    pinch.cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
     touchPan.active=false; e.preventDefault();
   }
 },{passive:false});
 workspace.addEventListener('touchmove', e=>{
   if(pinch.active && e.touches.length>=2){
-    const dx=e.touches[1].clientX - e.touches[0].clientX;
-    const dy=e.touches[1].clientY - e.touches[0].clientY;
-    const dist=Math.hypot(dx,dy);
-    let newScale = pinch.startScale * dist / pinch.startDist;
-    newScale = Math.max(.25, Math.min(3, newScale));
-    const rect = canvas.getBoundingClientRect();
-    const fx = (pinch.cx - rect.left - panX) / scale;
-    const fy = (pinch.cy - rect.top  - panY) / scale;
-    panX = pinch.cx - rect.left - fx * newScale;
-    panY = pinch.cy - rect.top  - fy * newScale;
-    scale = newScale; updateTransform(); updateConnections(); e.preventDefault(); return;
+    const dx=e.touches[1].clientX-e.touches[0].clientX, dy=e.touches[1].clientY-e.touches[0].clientY;
+    const dist=Math.hypot(dx,dy); let newScale=pinch.startScale*dist/pinch.startDist; newScale=Math.max(.25,Math.min(3,newScale));
+    const rect=canvas.getBoundingClientRect();
+    const fx=(pinch.cx-rect.left-panX)/scale, fy=(pinch.cy-rect.top-panY)/scale;
+    panX=pinch.cx-rect.left-fx*newScale; panY=pinch.cy-rect.top-fy*newScale; scale=newScale;
+    updateTransform(); updateConnections(); e.preventDefault(); return;
   }
   if(!touchPan.active) return;
   for(const t of e.touches){
     if(t.identifier===touchPan.id){
-      panX = touchPan.startPanX + (t.clientX - touchPan.startClientX);
-      panY = touchPan.startPanY + (t.clientY - touchPan.startClientY);
+      panX=touchPan.startPanX+(t.clientX-touchPan.startClientX);
+      panY=touchPan.startPanY+(t.clientY-touchPan.startClientY);
       updateTransform(); updateConnections(); e.preventDefault(); return;
     }
   }
@@ -370,93 +282,83 @@ workspace.addEventListener('touchend', e=>{
   if(!still) touchPan.active=false;
 });
 
-/* DnD (PC) + Tap-para-insertar (móvil) */
+/* DnD (PC) + tap para insertar (móvil/preview) */
 components.forEach(comp=>{
   comp.addEventListener("dragstart", e=>{
     e.dataTransfer.setData("application/x-simupasir", comp.dataset.type);
     e.dataTransfer.setData("text/plain", comp.dataset.type);
-    e.dataTransfer.effectAllowed="copy";
+    e.dataTransfer.effectAllowed='copy';
   });
   comp.addEventListener("click", ()=>{ currentToPlace = comp.dataset.type; });
 });
 canvas.addEventListener("dragover", e=>{ e.preventDefault(); e.dataTransfer.dropEffect='copy'; });
 canvas.addEventListener("drop", e=>{
   e.preventDefault(); if(simulation) return;
-  const type = e.dataTransfer.getData("application/x-simupasir") || e.dataTransfer.getData("text/plain");
-  if(!type) return;
-  const pos = clientToWorkspace(e.clientX, e.clientY);
-  createNode(type, pos.x, pos.y);
+  const type=e.dataTransfer.getData("application/x-simupasir")||e.dataTransfer.getData("text/plain");
+  if(!type) return; const pos=clientToWorkspace(e.clientX,e.clientY); createNode(type,pos.x,pos.y);
 });
-
-/* Click en blanco: colocar o des-seleccionar */
 canvas.addEventListener('click', e=>{
   if(e.target===workspace || e.target===wiresSVG){
     if(currentToPlace){
-      const pos = clientToWorkspace(e.clientX, e.clientY);
-      createNode(currentToPlace, pos.x, pos.y);
-    } else {
-      clearSelection();
-    }
+      const pos=clientToWorkspace(e.clientX,e.clientY); createNode(currentToPlace,pos.x,pos.y);
+    }else{ clearSelection(); }
   }
 });
 
-/* Helpers selección/borrado conexiones */
+/* Selección general */
 function removeConnection(conn){
   if(!conn) return;
-  const idx = connections.indexOf(conn);
-  if(idx >= 0) connections.splice(idx, 1);
-  if(conn.path){ try{ conn.path.remove(); }catch(_){ } conn.path = null; }
-  if(conn.hit){  try{ conn.hit.remove();  }catch(_){ } conn.hit  = null; }
-  if(conn.handles && conn.handles.length){ conn.handles.forEach(h=>{ try{ h.remove(); }catch(_){ } }); conn.handles = []; }
-  if(selectedConn === conn) selectedConn = null;
+  const i=connections.indexOf(conn); if(i>=0) connections.splice(i,1);
+  conn.path?.remove(); conn.hit?.remove();
+  (conn.handles||[]).forEach(h=>h.remove()); conn.handles=[];
+  if(selectedConn===conn) selectedConn=null;
   updateConnections();
 }
 function selectConnection(conn){
   if(simulation) return;
-  if(selectedConn && selectedConn.path){ selectedConn.path.classList.remove('selected'); }
+  selectedConn?.path?.classList.remove('selected');
   clearSelection();
-  selectedConn = conn; conn.selected = true;
-  if(conn.path) conn.path.classList.add('selected');
+  selectedConn=conn; conn.selected=true; conn.path?.classList.add('selected');
   renderConnection(conn);
 }
 function selectNode(node){ if(simulation) return; clearSelection(); selectedNode=node; node.el.classList.add('selected'); }
 function clearSelection(){
   if(selectedNode){ selectedNode.el.classList.remove('selected'); selectedNode=null; }
-  if(selectedConn){ if(selectedConn.path) selectedConn.path.classList.remove('selected'); selectedConn.selected=false; selectedConn=null; }
+  if(selectedConn){ selectedConn.path?.classList.remove('selected'); selectedConn.selected=false; selectedConn=null; }
   if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
-  pendingOutput = null; removeGhost();
+  pendingOutput=null; removeGhost();
   if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; }
-  connections.forEach(c=>{ if(c.handles) c.handles.forEach(h=>h.remove()); c.handles=[]; });
+  connections.forEach(c=>{ (c.handles||[]).forEach(h=>h.remove()); c.handles=[]; });
 }
 
-/* Crear nodo */
-function createNode(type, x, y){
-  const div = document.createElement('div'); div.className='node'; div.style.left = x + 'px'; div.style.top = y + 'px';
-  let name = (type||'G').toUpperCase();
-  if(type==='input') name = `I${++inputCount}`;
-  if(type==='output') name = `Q${++outputCount}`;
-  if(type==='M') name = `M${++memoryCount}`;
+/* Crear bloque */
+function createNode(type,x,y){
+  const div=document.createElement('div'); div.className='node'; div.style.left=x+'px'; div.style.top=y+'px';
+  let name=(type||'G').toUpperCase();
+  if(type==='input') name=`I${++inputCount}`;
+  if(type==='output') name=`Q${++outputCount}`;
+  if(type==='M') name=`M${++memoryCount}`;
 
-  const lbl = document.createElement('div'); lbl.className='label'; lbl.textContent=name; div.appendChild(lbl);
-  const qind = document.createElement('div'); qind.className='q-indicator off'; div.appendChild(qind);
+  const lbl=document.createElement('div'); lbl.className='label'; lbl.textContent=name; div.appendChild(lbl);
+  const qind=document.createElement('div'); qind.className='q-indicator off'; div.appendChild(qind);
 
-  const output = document.createElement('div'); output.className='terminal output'; div.appendChild(output);
-  const inputs = [];
+  const output=document.createElement('div'); output.className='terminal output'; div.appendChild(output);
+  const inputs=[];
 
   if(type==='input'){ div.style.background='#ffe4b5'; }
-  else if(type==='output' || type==='M'){ const inp=document.createElement('div'); inp.className='terminal input'; inp.style.top='50%'; div.appendChild(inp); inputs.push(inp); }
+  else if(type==='output'||type==='M'){ const inp=document.createElement('div'); inp.className='terminal input'; inp.style.top='50%'; div.appendChild(inp); inputs.push(inp); }
   else if(type==='not'){ const inp=document.createElement('div'); inp.className='terminal input'; inp.style.top='50%'; div.appendChild(inp); inputs.push(inp); }
   else if(type==='sr'){
-    const inS = document.createElement('div'); inS.className='terminal input'; inS.style.top='28%';
-    const labelS = document.createElement('div'); labelS.className='term-label'; labelS.style.top='24%'; labelS.textContent='S';
-    const inR = document.createElement('div'); inR.className='terminal input'; inR.style.top='72%';
-    const labelR = document.createElement('div'); labelR.className='term-label'; labelR.style.top='68%'; labelR.textContent='R';
+    const inS=document.createElement('div'); inS.className='terminal input'; inS.style.top='28%';
+    const labelS=document.createElement('div'); labelS.className='term-label'; labelS.style.top='24%'; labelS.textContent='S';
+    const inR=document.createElement('div'); inR.className='terminal input'; inR.style.top='72%';
+    const labelR=document.createElement('div'); labelR.className='term-label'; labelR.style.top='68%'; labelR.textContent='R';
     div.appendChild(inS); div.appendChild(labelS); div.appendChild(inR); div.appendChild(labelR);
     inputs.push(inS); inputs.push(inR);
-  } else {
-    const nInputs = 4;
+  }else{
+    const nInputs=4;
     for(let i=0;i<nInputs;i++){
-      const inp = document.createElement('div'); inp.className='terminal input';
+      const inp=document.createElement('div'); inp.className='terminal input';
       inp.style.top = `${(i+1)*100/(nInputs+1)}%`;
       div.appendChild(inp); inputs.push(inp);
     }
@@ -464,8 +366,8 @@ function createNode(type, x, y){
 
   workspace.appendChild(div);
 
-  const node = { el:div, type, name, inputs, output, value:0, nextValue:0, qIndicator:qind, invalid:false };
-  if(type==='sr') node.q = 0;
+  const node={ el:div, type, name, inputs, output, value:0, nextValue:0, qIndicator:qind, invalid:false };
+  if(type==='sr') node.q=0;
   nodes.push(node);
 
   if(node.output){ node.output.style.top='50%'; node.output.style.transform='translateY(-50%)'; }
@@ -475,278 +377,180 @@ function createNode(type, x, y){
     div.addEventListener('click', e=>{ if(e.target.classList.contains('terminal')) return; if(!simulation) return; div.classList.toggle('active'); scanLogic(); });
   }
 
-  dragMove(div, node);
+  dragMove(div,node);
   enableConnections(node);
   div.addEventListener('contextmenu', e=>{ e.preventDefault(); if(!simulation) removeNode(node); });
 
   updateConnections();
 }
 
-/* Mover nodos */
+/* Mover bloque (requiere seleccionado, como antes) */
 function dragMove(el,node){
-  let sx, sy, ix, iy, dragging=false;
+  let sx,sy,ix,iy,dragging=false;
   el.addEventListener('mousedown', e=>{
     if(e.target.classList.contains('terminal')) return;
     if(simulation) return;
-    if(selectedNode !== node) return;
-    e.preventDefault();
-    sx = e.clientX; sy = e.clientY; ix = parseFloat(el.style.left); iy = parseFloat(el.style.top);
-    dragging = true;
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    if(selectedNode!==node) return;
+    e.preventDefault(); sx=e.clientX; sy=e.clientY; ix=parseFloat(el.style.left); iy=parseFloat(el.style.top);
+    dragging=true; document.addEventListener('mousemove',onMove); document.addEventListener('mouseup',onUp);
   });
-  function onMove(e){
-    if(!dragging) return;
-    el.style.left = ix + (e.clientX - sx)/scale + 'px';
-    el.style.top  = iy + (e.clientY - sy)/scale + 'px';
-    updateConnections();
-  }
-  function onUp(){ dragging=false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
-  // Touch
+  function onMove(e){ if(!dragging) return; el.style.left=ix+(e.clientX-sx)/scale+'px'; el.style.top=iy+(e.clientY-sy)/scale+'px'; updateConnections(); }
+  function onUp(){ dragging=false; document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
   el.addEventListener('touchstart', e=>{
-    if(simulation) return;
-    if(selectedNode !== node) return;
-    const t = e.changedTouches[0];
-    sx = t.clientX; sy = t.clientY; ix = parseFloat(el.style.left); iy = parseFloat(el.style.top);
-    dragging = true;
-    document.addEventListener('touchmove', onTouchMove, {passive:false});
-    document.addEventListener('touchend', onTouchEnd);
+    if(simulation) return; if(selectedNode!==node) return;
+    const t=e.changedTouches[0]; sx=t.clientX; sy=t.clientY; ix=parseFloat(el.style.left); iy=parseFloat(el.style.top);
+    dragging=true; document.addEventListener('touchmove',onTouchMove,{passive:false}); document.addEventListener('touchend',onTouchEnd);
     e.stopPropagation(); e.preventDefault();
-  }, {passive:false});
-  function onTouchMove(e){
-    if(!dragging) return;
-    const t = e.changedTouches[0];
-    el.style.left = ix + (t.clientX - sx)/scale + 'px';
-    el.style.top  = iy + (t.clientY - sy)/scale + 'px';
-    updateConnections(); e.preventDefault();
-  }
-  function onTouchEnd(){
-    dragging=false;
-    document.removeEventListener('touchmove', onTouchMove);
-    document.removeEventListener('touchend', onTouchEnd);
-  }
+  },{passive:false});
+  function onTouchMove(e){ if(!dragging) return; const t=e.changedTouches[0]; el.style.left=ix+(t.clientX-sx)/scale+'px'; el.style.top=iy+(t.clientY-sy)/scale+'px'; updateConnections(); e.preventDefault(); }
+  function onTouchEnd(){ dragging=false; document.removeEventListener('touchmove',onTouchMove); document.removeEventListener('touchend',onTouchEnd); }
 }
 
-/* Conexiones + ghost + pines azules */
+/* Conexiones y pines azules */
 function enableConnections(node){
-  const handler = el => {
+  const handler = el=>{
     if(simulation) return;
 
     if(el.classList.contains('output')){
-      if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); }
-      selectedPinEl = el;
-      el.classList.add('pin-selected');     // pin origen en azul
-      pendingOutput = el;
-      showGhost(el);
-      return;
+      selectedPinEl?.classList.remove('pin-selected');
+      selectedPinEl=el; el.classList.add('pin-selected');
+      pendingOutput=el; showGhost(el); return;
     }
-
     if(el.classList.contains('input')){
-      el.classList.add('pin-target');
-      setTimeout(()=>el.classList.remove('pin-target'), 300);
-
+      el.classList.add('pin-target'); setTimeout(()=>el.classList.remove('pin-target'),300);
       if(!pendingOutput) return;
-      if(pendingOutput === el){ // cancelar si tocaste el mismo
-        removeGhost();
-        if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
-        pendingOutput = null;
-        return;
-      }
+      if(pendingOutput===el){ removeGhost(); selectedPinEl?.classList.remove('pin-selected'); selectedPinEl=null; pendingOutput=null; return; }
       createConnection(pendingOutput, el);
-      removeGhost();
-      if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
-      pendingOutput = null;
+      removeGhost(); selectedPinEl?.classList.remove('pin-selected'); selectedPinEl=null; pendingOutput=null;
     }
   };
-  if(node.output) node.output.addEventListener('click', ()=>handler(node.output));
-  node.inputs.forEach(inp => inp.addEventListener('click', ()=>handler(inp)));
+  node.output && node.output.addEventListener('click', ()=>handler(node.output));
+  node.inputs.forEach(inp=>inp.addEventListener('click', ()=>handler(inp)));
 }
 
-/* Ghost line */
+/* Ghost provisional */
 function showGhost(fromTerm){
   removeGhost();
-  const s = terminalEdge(fromTerm);
-  const path = document.createElementNS("http://www.w3.org/2000/svg","path");
-  path.setAttribute("class","wire-path ghost");
-  updateGhostPath(path, s.x, s.y, s.x, s.y);
+  const s=terminalEdge(fromTerm);
+  const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("class","wire-path ghost"); updateGhostPath(path,s.x,s.y,s.x,s.y);
   wiresSVG.appendChild(path); pendingGhost=path;
   workspace.addEventListener('mousemove',trackGhost);
   workspace.addEventListener('touchmove',trackGhostTouch,{passive:false});
 }
 function removeGhost(){
-  if(pendingGhost){ pendingGhost.remove(); pendingGhost=null; }
+  pendingGhost?.remove(); pendingGhost=null;
   workspace.removeEventListener('mousemove',trackGhost);
   workspace.removeEventListener('touchmove',trackGhostTouch);
 }
-function trackGhost(e){
-  if(!pendingGhost||!pendingOutput) return;
-  const p=clientToWorkspace(e.clientX,e.clientY);
-  const s=terminalEdge(pendingOutput);
-  updateGhostPath(pendingGhost, s.x,s.y, p.x,p.y);
-}
-function trackGhostTouch(e){
-  if(!pendingGhost||!pendingOutput) return;
-  const t=e.touches[0];
-  const p=clientToWorkspace(t.clientX,t.clientY);
-  const s=terminalEdge(pendingOutput);
-  updateGhostPath(pendingGhost, s.x,s.y, p.x,p.y);
-  e.preventDefault();
-}
-function updateGhostPath(path,sx,sy,ex,ey){
-  const midX=(sx+ex)/2;
-  path.setAttribute('d',`M${sx},${sy} L${midX},${sy} L${midX},${ey} L${ex},${ey}`);
-}
+function trackGhost(e){ if(!pendingGhost||!pendingOutput) return; const p=clientToWorkspace(e.clientX,e.clientY); const s=terminalEdge(pendingOutput); updateGhostPath(pendingGhost,s.x,s.y,p.x,p.y); }
+function trackGhostTouch(e){ if(!pendingGhost||!pendingOutput) return; const t=e.touches[0]; const p=clientToWorkspace(t.clientX,t.clientY); const s=terminalEdge(pendingOutput); updateGhostPath(pendingGhost,s.x,s.y,p.x,p.y); e.preventDefault(); }
+function updateGhostPath(path,sx,sy,ex,ey){ const midX=(sx+ex)/2; path.setAttribute('d',`M${sx},${sy} L${midX},${sy} L${midX},${ey} L${ex},${ey}`); }
 
-/* ====== Bend helpers: arrastre inmediato ====== */
-function startDraggingHandle(conn, index){
-  // marca visual
-  if(conn.handles && conn.handles[index]){
-    conn.handles[index].classList.add('dragging');
-  }
-  draggingBend = { conn, index };
-  // listeners globales (mouse)
-  document.addEventListener('mousemove', onBendMove);
-  document.addEventListener('mouseup', stopDraggingHandle);
-  // listeners táctiles
-  document.addEventListener('touchmove', onBendMoveTouch, {passive:false});
-  document.addEventListener('touchend', stopDraggingHandle, {passive:true});
+/* Arrastre de nodo (bend) con gran hitbox */
+function startDraggingHandle(conn,index){
+  if(conn.handles && conn.handles[index]) conn.handles[index].classList.add('dragging');
+  draggingBend={conn,index};
+  document.addEventListener('mousemove',onBendMove);
+  document.addEventListener('mouseup',stopDraggingHandle);
+  document.addEventListener('touchmove',onBendMoveTouch,{passive:false});
+  document.addEventListener('touchend',stopDraggingHandle,{passive:true});
 }
 function stopDraggingHandle(){
   if(!draggingBend) return;
-  const { conn, index } = draggingBend;
+  const {conn,index}=draggingBend;
   if(conn.handles && conn.handles[index]) conn.handles[index].classList.remove('dragging');
-  draggingBend = null;
-  document.removeEventListener('mousemove', onBendMove);
-  document.removeEventListener('mouseup', stopDraggingHandle);
-  document.removeEventListener('touchmove', onBendMoveTouch);
-  document.removeEventListener('touchend', stopDraggingHandle);
+  draggingBend=null;
+  document.removeEventListener('mousemove',onBendMove);
+  document.removeEventListener('mouseup',stopDraggingHandle);
+  document.removeEventListener('touchmove',onBendMoveTouch);
+  document.removeEventListener('touchend',stopDraggingHandle);
 }
-function onBendMove(ev){
-  if(!draggingBend) return;
-  const pos = clientToWorkspace(ev.clientX, ev.clientY);
-  const { conn, index } = draggingBend;
-  conn.bends[index].x = pos.x;
-  conn.bends[index].y = pos.y;
-  renderConnection(conn);
-}
-function onBendMoveTouch(ev){
-  if(!draggingBend) return;
-  ev.preventDefault();
-  const t = ev.touches[0];
-  const pos = clientToWorkspace(t.clientX, t.clientY);
-  const { conn, index } = draggingBend;
-  conn.bends[index].x = pos.x;
-  conn.bends[index].y = pos.y;
-  renderConnection(conn);
-}
+function onBendMove(ev){ if(!draggingBend) return; const pos=clientToWorkspace(ev.clientX,ev.clientY); const {conn,index}=draggingBend; conn.bends[index].x=pos.x; conn.bends[index].y=pos.y; renderConnection(conn); }
+function onBendMoveTouch(ev){ if(!draggingBend) return; ev.preventDefault(); const t=ev.touches[0]; const pos=clientToWorkspace(t.clientX,t.clientY); const {conn,index}=draggingBend; conn.bends[index].x=pos.x; conn.bends[index].y=pos.y; renderConnection(conn); }
 
-/* Crear y dibujar conexión (con hitbox) */
-function createConnection(fromTerm, toTerm){
+/* Conexión */
+function createConnection(fromTerm,toTerm){
   if(simulation) return;
-  if(connections.find(c => c.from === fromTerm && c.to === toTerm)) return;
-  const conn = { from: fromTerm, to: toTerm, path: null, hit:null, bends: [], handles: [], selected: false };
+  if(connections.find(c=>c.from===fromTerm && c.to===toTerm)) return;
+  const conn={ from:fromTerm, to:toTerm, path:null, hit:null, bends:[], handles:[], selected:false };
   connections.push(conn); renderConnection(conn);
 }
 function renderConnection(conn){
-  if(conn.path){ conn.path.remove(); conn.path=null; }
-  if(conn.hit){  conn.hit.remove();  conn.hit=null;  }
-  if(conn.handles){ conn.handles.forEach(h=>h.remove()); conn.handles=[]; }
+  conn.path?.remove(); conn.hit?.remove();
+  (conn.handles||[]).forEach(h=>h.remove()); conn.handles=[];
 
-  const s = terminalEdge(conn.from);
-  const e = terminalEdge(conn.to);
-
-  let d = '';
-  if(conn.bends.length === 0){
-    const midX = (s.x + e.x) / 2;
-    d = `M${s.x},${s.y} L${midX},${s.y} L${midX},${e.y} L${e.x},${e.y}`;
-  } else {
-    const pts = [{x:s.x,y:s.y}].concat(conn.bends).concat([{x:e.x,y:e.y}]);
-    d = `M${pts[0].x},${pts[0].y} `;
-    for(let i=1;i<pts.length;i++){
-      const prev = pts[i-1], next = pts[i];
-      d += `L${next.x},${prev.y} L${next.x},${next.y} `;
-    }
+  const s=terminalEdge(conn.from), e=terminalEdge(conn.to);
+  let d='';
+  if(conn.bends.length===0){
+    const midX=(s.x+e.x)/2; d=`M${s.x},${s.y} L${midX},${s.y} L${midX},${e.y} L${e.x},${e.y}`;
+  }else{
+    const pts=[{x:s.x,y:s.y}].concat(conn.bends).concat([{x:e.x,y:e.y}]);
+    d=`M${pts[0].x},${pts[0].y} `; for(let i=1;i<pts.length;i++){ const prev=pts[i-1], next=pts[i]; d+=`L${next.x},${prev.y} L${next.x},${next.y} `; }
   }
 
-  // HITBOX invisible grueso (40px)
-  const hit = document.createElementNS("http://www.w3.org/2000/svg","path");
-  hit.setAttribute("d", d);
-  hit.setAttribute("class", "wire-hit");
+  const hit=document.createElementNS("http://www.w3.org/2000/svg","path");
+  hit.setAttribute("d",d); hit.setAttribute("class","wire-hit");
 
-  // Path visible
-  const path = document.createElementNS("http://www.w3.org/2000/svg","path");
-  path.setAttribute("d", d);
-  path.setAttribute("class", "wire-path");
-  if (conn.selected) path.classList.add('selected');
+  const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("d",d); path.setAttribute("class","wire-path");
+  if(conn.selected) path.classList.add('selected');
 
-  const srcVal = getSourceNodeValue(conn);
-  if(srcVal === 1) path.classList.add('signal'); else path.classList.remove('signal');
+  const srcVal=getSourceNodeValue(conn);
+  if(srcVal===1) path.classList.add('signal'); else path.classList.remove('signal');
 
-  // Selección/borrado sobre la hitbox
-  const onSelect = (ev)=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); };
-  hit.addEventListener('click', onSelect);
-  hit.addEventListener('touchstart', onSelect, {passive:true});
-  hit.addEventListener('contextmenu', (ev)=>{ ev.preventDefault(); if(simulation) return; removeConnection(conn); });
+  const onSelect=(ev)=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); };
+  hit.addEventListener('click',onSelect);
+  hit.addEventListener('touchstart',onSelect,{passive:true});
+  hit.addEventListener('contextmenu',(ev)=>{ ev.preventDefault(); if(simulation) return; removeConnection(conn); });
 
-  // Long press (0.5s) para agregar bend y ARRÁSTRALO YA
   function onPathDown(ev){
     if(simulation) return;
     if(ev.type==='mousedown' && ev.button!==0) return;
     ev.stopPropagation();
     if(longPressTimer){ clearTimeout(longPressTimer); }
-    longPressTimer = setTimeout(()=>{
-      const clientX = (ev.type==='mousedown') ? ev.clientX : (ev.touches?.[0]?.clientX ?? ev.clientX);
-      const clientY = (ev.type==='mousedown') ? ev.clientY : (ev.touches?.[0]?.clientY ?? ev.clientY);
-      const pos = clientToWorkspace(clientX, clientY);
-      // crear bend
-      conn.bends.push({ x: pos.x, y: pos.y });
-      orderBends(conn);
-      selectConnection(conn);        // asegura handles visibles
-      renderConnection(conn);
-      // buscar el índice del bend recién creado (el de x más cercano a pos.x)
-      let idx = 0, best = 1e9;
-      conn.bends.forEach((b,i)=>{ const d=Math.hypot(b.x-pos.x,b.y-pos.y); if(d<best){best=d; idx=i;} });
-      // iniciar arrastre inmediato
-      startDraggingHandle(conn, idx);
-    }, 500);
-    const cancelLP = ()=>{ if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; } };
-    document.addEventListener('mouseup', cancelLP, {once:true});
-    document.addEventListener('touchend', cancelLP, {once:true, passive:true});
+    longPressTimer=setTimeout(()=>{
+      const clientX=(ev.type==='mousedown')?ev.clientX:(ev.touches?.[0]?.clientX ?? ev.clientX);
+      const clientY=(ev.type==='mousedown')?ev.clientY:(ev.touches?.[0]?.clientY ?? ev.clientY);
+      const pos=clientToWorkspace(clientX,clientY);
+      conn.bends.push({x:pos.x,y:pos.y}); orderBends(conn); selectConnection(conn); renderConnection(conn);
+      // elegir bend recién creado (más cercano) e iniciar arrastre inmediato
+      let idx=0, best=1e9; conn.bends.forEach((b,i)=>{ const dd=Math.hypot(b.x-pos.x,b.y-pos.y); if(dd<best){best=dd; idx=i;} });
+      startDraggingHandle(conn,idx);
+    },500);
+    const cancel=()=>{ if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; } };
+    document.addEventListener('mouseup',cancel,{once:true});
+    document.addEventListener('touchend',cancel,{once:true,passive:true});
   }
-  path.addEventListener('mousedown', onPathDown);
-  path.addEventListener('touchstart', onPathDown, {passive:false});
-  hit .addEventListener('mousedown', onPathDown);
-  hit .addEventListener('touchstart', onPathDown, {passive:false});
+  path.addEventListener('mousedown',onPathDown);
+  path.addEventListener('touchstart',onPathDown,{passive:false});
+  hit .addEventListener('mousedown',onPathDown);
+  hit .addEventListener('touchstart',onPathDown,{passive:false});
 
-  // Orden: primero hit, luego path
   wiresSVG.appendChild(hit);
   wiresSVG.appendChild(path);
+  conn.hit=hit; conn.path=path;
 
-  conn.hit  = hit;
-  conn.path = path;
-
-  // Si está seleccionada, dibuja handles
+  /* Dibujar handles + mega-hitbox para arrastrar presionando el nodo */
   if(conn.selected && !simulation){
-    conn.handles = [];
-    conn.bends.forEach((b, idx)=>{
-      const c = document.createElementNS("http://www.w3.org/2000/svg","circle");
-      c.setAttribute("cx", b.x);
-      c.setAttribute("cy", b.y);
-      c.setAttribute("r", 11);
-      c.setAttribute("class", "bend-handle");
-      wiresSVG.appendChild(c);
-      conn.handles.push(c);
+    conn.handles=[];
+    conn.bends.forEach((b,idx)=>{
+      const g=document.createElementNS("http://www.w3.org/2000/svg","g");
 
-      c.addEventListener('mousedown', ev=>{
-        if(simulation) return;
-        ev.stopPropagation();
-        startDraggingHandle(conn, idx);
-      });
-      c.addEventListener('touchstart', ev=>{
-        if(simulation) return;
-        ev.stopPropagation();
-        startDraggingHandle(conn, idx);
-      }, {passive:true});
+      const hitC=document.createElementNS("http://www.w3.org/2000/svg","circle");
+      hitC.setAttribute('cx',b.x); hitC.setAttribute('cy',b.y); hitC.setAttribute('r',24);
+      hitC.setAttribute('class','bend-hit');
+
+      const c=document.createElementNS("http://www.w3.org/2000/svg","circle");
+      c.setAttribute('cx',b.x); c.setAttribute('cy',b.y); c.setAttribute('r',11);
+      c.setAttribute('class','bend-handle');
+
+      g.appendChild(hitC); g.appendChild(c); wiresSVG.appendChild(g);
+      conn.handles.push(c); // guardamos referencia visible para feedback
+
+      const start=(ev)=>{ if(simulation) return; ev.stopPropagation(); startDraggingHandle(conn, idx); };
+      c.addEventListener('mousedown',start); c.addEventListener('touchstart',start,{passive:true});
+      hitC.addEventListener('mousedown',start); hitC.addEventListener('touchstart',start,{passive:true});
     });
   }
 
@@ -754,69 +558,64 @@ function renderConnection(conn){
 }
 function orderBends(conn){
   const s=terminalEdge(conn.from), e=terminalEdge(conn.to);
-  const asc = s.x <= e.x; conn.bends.sort((a,b)=> asc?a.x-b.x:b.x-a.x);
+  const asc=s.x<=e.x; conn.bends.sort((a,b)=>asc?a.x-b.x:b.x-a.x);
 }
 function updatePinsVisual(conn, srcVal){
   try{ conn.from.classList.toggle('signal-on', srcVal===1); }catch(e){}
-  const srcNode = nodes.find(n=>n.output===conn.from);
+  const srcNode=nodes.find(n=>n.output===conn.from);
   if(srcNode && srcNode.qIndicator){ srcNode.qIndicator.classList.toggle('on', srcVal===1); }
 }
-function getSourceNodeValue(conn){ const n = nodes.find(nn => nn.output === conn.from); return n ? n.value : 0; }
+function getSourceNodeValue(conn){ const n=nodes.find(nn=>nn.output===conn.from); return n? n.value:0; }
 function updateConnections(){ connections.forEach(c=>renderConnection(c)); }
 
-/* Eliminar nodo + conexiones */
+/* Eliminar bloque + cables asociados */
 function removeNode(node){
   if(simulation) return;
-  if(selectedConn && (selectedConn.from === node.output || node.inputs.includes(selectedConn.to))){
-    selectedConn = null;
-  }
-  connections = connections.filter(c => c.from !== node.output && !node.inputs.includes(c.to));
-  try{ node.el.remove(); }catch(_){}
-  nodes = nodes.filter(n => n !== node);
+  if(selectedConn && (selectedConn.from===node.output || node.inputs.includes(selectedConn.to))) selectedConn=null;
+  connections = connections.filter(c=> c.from!==node.output && !node.inputs.includes(c.to) );
+  node.el.remove(); nodes = nodes.filter(n=>n!==node);
   clearSelection(); updateConnections();
 }
 
 /* Lógica */
-function evaluateGate(type, inputs){
-  if(inputs.length === 0) return 0;
+function evaluateGate(type,inputs){
+  if(inputs.length===0) return 0;
   switch(type){
     case 'and': return inputs.every(v=>v===1)?1:0;
-    case 'or': return inputs.some(v=>v===1)?1:0;
+    case 'or':  return inputs.some(v=>v===1)?1:0;
     case 'not': return inputs[0]?0:1;
-    case 'nand': return inputs.every(v=>v===1)?0:1;
+    case 'nand':return inputs.every(v=>v===1)?0:1;
     case 'nor': return inputs.some(v=>v===1)?0:1;
     case 'xor': return inputs.reduce((a,b)=>a^b,0);
-    case 'xnor': return evaluateGate('xor', inputs)?0:1;
+    case 'xnor':return evaluateGate('xor',inputs)?0:1;
     default: return inputs[0]||0;
   }
 }
 function scanLogic(){
   nodes.forEach(n=>{ if(n.type==='input') n.value = n.el.classList.contains('active')?1:0; n.invalid=false; });
   nodes.forEach(node=>{
-    node.nextValue = node.value; if(node.type === 'input') return;
-    const inVals = connections.filter(c => node.inputs.includes(c.to)).map(c => {
-      const s = nodes.find(n => n.output === c.from); return s ? s.value : 0;
-    });
-    if(inVals.length === 0){
-      if(node.type === 'output' || node.type === 'M') node.nextValue = 0;
-      else if(node.type === 'sr') node.nextValue = node.q || 0;
-      else node.nextValue = 0; return;
+    node.nextValue=node.value; if(node.type==='input') return;
+    const inVals=connections.filter(c=>node.inputs.includes(c.to)).map(c=>{ const s=nodes.find(n=>n.output===c.from); return s ? s.value : 0; });
+    if(inVals.length===0){
+      if(node.type==='output' || node.type==='M') node.nextValue=0;
+      else if(node.type==='sr') node.nextValue=node.q||0;
+      else node.nextValue=0; return;
     }
-    if(node.type === 'output' || node.type === 'M') node.nextValue = inVals[0] ? 1 : 0;
-    else if(node.type === 'sr'){
-      const S = inVals[0] ? 1 : 0; const R = inVals[1] ? 1 : 0;
-      if(S === 1 && R === 0){ node.q = 1; node.nextValue = 1; }
-      else if(S === 0 && R === 1){ node.q = 0; node.nextValue = 0; }
-      else node.nextValue = node.q || 0;
-    } else node.nextValue = evaluateGate(node.type, inVals) ? 1 : 0;
+    if(node.type==='output' || node.type==='M') node.nextValue=inVals[0]?1:0;
+    else if(node.type==='sr'){
+      const S=inVals[0]?1:0, R=inVals[1]?1:0;
+      if(S===1 && R===0){ node.q=1; node.nextValue=1; }
+      else if(S===0 && R===1){ node.q=0; node.nextValue=0; }
+      else node.nextValue=node.q||0;
+    }else node.nextValue=evaluateGate(node.type,inVals)?1:0;
   });
-  nodes.forEach(n=>{ n.value = n.nextValue; if(n.type==='sr') n.q = n.nextValue; });
+  nodes.forEach(n=>{ n.value=n.nextValue; if(n.type==='sr') n.q=n.nextValue; });
   nodes.forEach(n=>{
-    if(n.type === 'input' || n.type === 'output' || n.type === 'M'){
-      n.el.classList.toggle('active', n.value === 1);
-      if(n.output) n.output.classList.toggle('signal-on', n.value===1);
-    } else n.el.classList.remove('active');
-    if(n.qIndicator) n.qIndicator.classList.toggle('on', n.value===1);
+    if(n.type==='input' || n.type==='output' || n.type==='M'){
+      n.el.classList.toggle('active', n.value===1);
+      n.output && n.output.classList.toggle('signal-on', n.value===1);
+    }else n.el.classList.remove('active');
+    n.qIndicator && n.qIndicator.classList.toggle('on', n.value===1);
     n.el.classList.toggle('error', !!n.invalid);
   });
   updateConnections();
@@ -825,41 +624,38 @@ function scanLogic(){
 /* Botones */
 document.getElementById('simulate').addEventListener('click', ()=>{
   if(simulation) return;
-  clearSelection(); simulation = true; scanLogic(); simTimer = setInterval(scanLogic, SCAN_MS);
+  clearSelection(); simulation=true; scanLogic(); simTimer=setInterval(scanLogic,SCAN_MS);
 });
 document.getElementById('stop').addEventListener('click', ()=>{
-  if(simTimer){ clearInterval(simTimer); simTimer = null; }
-  simulation = false;
+  if(simTimer){ clearInterval(simTimer); simTimer=null; }
+  simulation=false;
   nodes.forEach(n=>{
     n.value=0;
-    if(n.type==='input' || n.type==='output' || n.type==='M') n.el.classList.remove('active');
-    if(n.qIndicator) n.qIndicator.classList.remove('on');
-    n.invalid=false;
-    if(n.output) n.output.classList.remove('signal-on');
+    if(n.type==='input'||n.type==='output'||n.type==='M') n.el.classList.remove('active');
+    n.qIndicator && n.qIndicator.classList.remove('on');
+    n.invalid=false; n.output && n.output.classList.remove('signal-on');
   });
   updateConnections();
 });
 document.getElementById('deleteBtn').addEventListener('click', ()=>{
   if(simulation) return;
-  if(selectedNode){ removeNode(selectedNode); return; }
-  if(selectedConn){ removeConnection(selectedConn); return; }
+  if(selectedNode) { removeNode(selectedNode); return; }
+  if(selectedConn) { removeConnection(selectedConn); return; }
 });
-
-/* Borrar con Supr/Backspace en desktop */
 document.addEventListener('keydown', (e)=>{
-  if(e.key === 'Delete' || e.key === 'Backspace'){
+  if(e.key==='Delete' || e.key==='Backspace'){
     if(simulation) return;
     if(selectedNode) removeNode(selectedNode);
     else if(selectedConn) removeConnection(selectedConn);
   }
 });
 
-/* Redibuja cables al cambiar tamaño */
+/* Redibuja en resize */
 window.addEventListener('resize', updateConnections);
 
-/* Iniciar */
+/* Init */
 updateConnections();
-console.log("SIMUPASIR: bends con arrastre inmediato, labels grandes, sidebar angosto.");
+console.log("SIMUPASIR listo: labels 100px, biblioteca 20px, bends arrastrables con hitbox grande.");
 </script>
 </body>
 </html>
