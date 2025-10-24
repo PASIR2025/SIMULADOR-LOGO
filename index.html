@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>SIMUPASIR — señales en cables, etiquetas, bloques y pines</title>
+<title>SIMUPASIR — etiquetas con troncal y junta</title>
 
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#003366">
@@ -16,16 +16,15 @@
   :root{
     --sidebar:#f3e5ab;
     --node:#fff8dc;
-    --node-on:#e8fff1;
     --pin:#222;
     --wire:#000;
     --neon:#00ff66;
     --accent:#444;
 
-    --pin-long:24px;
-    --pin-hit-h:28px;
-    --pin-visible-h:7px;
-    --round-pin:28px;
+    --pin-long:24px;          /* largo visible recto */
+    --pin-hit-h:28px;         /* alto hitbox toque */
+    --pin-visible-h:7px;      /* alto visible */
+    --round-pin:28px;         /* salida circular negra (doble) */
 
     --workspace-size:5000px;
   }
@@ -44,17 +43,16 @@
   #workspace{position:absolute;top:0;left:0;width:var(--workspace-size);height:var(--workspace-size);transform-origin:0 0;background:transparent}
 
   /* Bloques */
-  .node{position:absolute;background:var(--node);border:3px solid var(--accent);border-radius:10px;width:150px;height:225px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:move;user-select:none;padding:8px;box-sizing:border-box;box-shadow:0 6px 0 rgba(0,0,0,.06);z-index:10;touch-action:none;transition:background .12s,border-color .12s}
-  .node.on{background:var(--node-on);border-color:#1b7e3a}
+  .node{position:absolute;background:var(--node);border:3px solid var(--accent);border-radius:10px;width:150px;height:225px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:move;user-select:none;padding:8px;box-sizing:border-box;box-shadow:0 6px 0 rgba(0,0,0,.06);z-index:10;touch-action:none}
   .label{font-weight:900;margin-bottom:6px;pointer-events:none;color:#222;font-size:60px;line-height:1.05}
   .selected{box-shadow:0 10px 18px rgba(0,0,0,.12);border-color:#0058a3!important;transform:translateY(-2px)}
 
-  /* Badge B001… */
+  /* Badge B001… (grande) */
   .badge{position:absolute;top:6px;left:6px;padding:4px 10px;border-radius:12px;border:2px solid #003366;background:#fff;color:#003366;font-weight:900;font-size:18px;line-height:1;pointer-events:none;user-select:none;box-shadow:0 2px 0 rgba(0,0,0,.06)}
 
   /* Pines con hitbox grande */
   .terminal{position:absolute;cursor:pointer;border-radius:8px;box-shadow:0 1px 0 rgba(0,0,0,.08);height:var(--pin-hit-h);background:transparent}
-  .terminal::before{content:"";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:var(--pin-visible-h);border-radius:4px;background:var(--pin);display:block;transition:background .12s,box-shadow .12s}
+  .terminal::before{content:"";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:var(--pin-visible-h);border-radius:4px;background:var(--pin);display:block}
   .terminal.input{width:var(--pin-long);left:calc(-1 * var(--pin-long))}
   .terminal.output{width:var(--pin-long);right:calc(-1 * var(--pin-long));top:50%;transform:translateY(-50%)}
 
@@ -64,14 +62,14 @@
 
   .terminal.pin-selected::before{background:#0078d7!important;box-shadow:0 0 0 3px rgba(0,120,215,.25)}
   .terminal.pin-target{outline:2px solid #0078d7;outline-offset:2px}
-  .terminal.signal-on::before{background:var(--neon)!important;box-shadow:0 0 8px rgba(0,255,102,.35)}
+  .terminal.signal-on::before{background:var(--neon)!important}
 
   .term-label{position:absolute;left:calc(-1 * var(--pin-long) - 36px);width:40px;text-align:right;font-size:12px;color:#222;user-select:none}
 
   /* Cables */
   #wires{position:absolute;top:0;left:0;width:var(--workspace-size);height:var(--workspace-size);pointer-events:auto;z-index:6}
   .wire-hit{fill:none;stroke:#000;stroke-width:40;stroke-opacity:0;vector-effect:non-scaling-stroke;pointer-events:stroke;stroke-linecap:round}
-  .wire-path{fill:none;stroke:var(--wire);stroke-width:5;vector-effect:non-scaling-stroke;pointer-events:stroke;transition:stroke .08s}
+  .wire-path{fill:none;stroke:var(--wire);stroke-width:5;vector-effect:non-scaling-stroke;pointer-events:stroke}
   .wire-path.signal{stroke:var(--neon);stroke-width:6;filter:drop-shadow(0 0 8px rgba(0,255,102,.25))}
   .wire-path.selected{stroke:#0078d7;stroke-width:6}
   .wire-path.ghost{stroke-dasharray:6 6;opacity:.75}
@@ -87,10 +85,11 @@
 
   /* Etiquetas grandes */
   .conn-tag{position:absolute;transform:translate(-50%,-50%);background:#fff;border:3px solid #003366;color:#003366;border-radius:12px;padding:6px 12px;font-weight:900;
-            font-size:27px;line-height:1;box-shadow:0 2px 0 rgba(0,0,0,.06);user-select:none;z-index:20;cursor:grab;transition:background .12s,border-color .12s,color .12s}
+            font-size:27px;line-height:1;box-shadow:0 2px 0 rgba(0,0,0,.06);user-select:none;z-index:20;cursor:grab}
   .conn-tag-src{background:#003366;color:#fff}
-  .conn-tag.signal{background:#00b24d;color:#fff;border-color:#007a35;box-shadow:0 0 10px rgba(0,255,102,.35)}
   .conn-tag.selected{outline:3px solid #0078d7;outline-offset:2px}
+  /* << NUEVO: etiqueta con señal >> */
+  .conn-tag.signal{background:var(--neon);color:#000;border-color:var(--neon);box-shadow:0 0 12px rgba(0,255,102,.45)}
 
   /* Controles */
   #controls{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--sidebar);padding:8px 12px;border-radius:10px;border:2px solid #bdb089;display:flex;gap:10px;align-items:center;z-index:200}
@@ -113,7 +112,7 @@
   .pick{background:#fff8dc;border:2px solid #7a7a7a;border-radius:10px;padding:10px;font-weight:800;font-size:20px;text-align:center;cursor:pointer}
 
   /* Menú contextual del cable */
-  #wireMenu{position:fixed;z-index:230;display:none;background:#fff;border:2px solid #003366;border-radius:12px;box-shadow:0 10px 24px rgba(0,0,0,.18);overflow:hidden}
+  #wireMenu{position:fixed;z-index:230;display:none;background:#fff;border:2px solid #00366; border-color:#003366;border-radius:12px;box-shadow:0 10px 24px rgba(0,0,0,.18);overflow:hidden}
   #wireMenu button{display:block;width:100%;background:#fff;border:0;border-bottom:1px solid #e5e5e5;padding:10px 14px;font-weight:800;cursor:pointer;text-align:left}
   #wireMenu button:last-child{border-bottom:0}
   #wireMenu button:hover{background:#f5f9ff}
@@ -187,7 +186,7 @@
     </div>
   </div>
 
-  <!-- Menú contextual del cable -->
+  <!-- Menú contextual del cable (modo wire) -->
   <div id="wireMenu">
     <button id="menuAddNode">➕ Crear nodo para acomodar</button>
     <button id="menuMakeLabel">🏷️ Crear etiqueta y eliminar cable</button>
@@ -210,12 +209,12 @@ const components = document.querySelectorAll(".component");
 let nodes=[], connections=[], pendingOutput=null, pendingGhost=null;
 let simulation=false;
 let inputCount=0, outputCount=0, memoryCount=0;
-let blockCodeCount=0;
+let blockCodeCount=0;  // B001, B002, ...
 let scale=1, panX=0, panY=0, isPanning=false, panStartX=0, panStartY=0;
 let simTimer=null, SCAN_MS=60;
 let selectedNode=null, selectedConn=null;
 let selectedTag=null;
-let selectedBranch=null;
+let selectedBranch=null; // para ramas de etiquetas
 let draggingBend=null;
 let longPressTimer=null;
 let currentToPlace=null;
@@ -364,7 +363,7 @@ canvas.addEventListener('click', e=>{
 
 /* Selección general */
 function selectNode(node){ if(simulation) return; clearSelection(); selectedNode=node; node.el.classList.add('selected'); }
-function selectConnection(conn){ if(simulation) return; clearSelection(); selectedConn=conn; conn.path?.classList.add('selected'); conn.selected=true; renderConnection(conn); }
+function selectConnection(conn){ if(simulation) return; clearSelection(); selectedConn=conn; conn.selected=true; conn.path?.classList.add('selected'); renderConnection(conn); }
 function selectTag(tag){ if(selectedTag===tag) return; selectedTag?.classList.remove('selected'); selectedTag=tag; tag.classList.add('selected'); if(selectedConn){ selectedConn.path?.classList.remove('selected'); selectedConn.selected=false; selectedConn=null; } }
 function clearSelection(){
   if(selectedNode){ selectedNode.el.classList.remove('selected'); selectedNode=null; }
@@ -518,7 +517,6 @@ function getDestNameWithPin(conn){
 }
 
 /* ===== Hubs (juntas) de salida ===== */
-const outputHubs = new WeakMap();
 function ensureHub(pinEl){
   let hub = outputHubs.get(pinEl);
   if(hub) return hub;
@@ -533,7 +531,7 @@ function ensureHub(pinEl){
   hit.setAttribute('class','hub-hit');
 
   const stem = document.createElementNS("http://www.w3.org/2000/svg","path");
-  stem.setAttribute('class','wire-path');
+  stem.setAttribute('class','wire-path'); // troncal corto desde pin → hub
 
   wiresSVG.appendChild(stem);
   wiresSVG.appendChild(hit);
@@ -592,6 +590,7 @@ function createTagEl(text, isSource){
   workspace.appendChild(tag);
   return tag;
 }
+
 function attachDragToTag(branch){
   const tag = branch.tagEl;
   let dragging=false, sx=0, sy=0, ox=0, oy=0;
@@ -626,6 +625,8 @@ function attachDragToTag(branch){
   tag.addEventListener('touchstart', start, {passive:false});
   tag.addEventListener('click', (e)=>{ e.stopPropagation(); selectTag(tag); });
 }
+
+/* Crea una rama desde HUB o desde PIN (entrada) hacia la etiqueta */
 function createBranch({fromHub, hub, fromPin, pinEl, text}){
   const path = document.createElementNS("http://www.w3.org/2000/svg","path");
   path.setAttribute('class','wire-path');
@@ -677,6 +678,8 @@ function createBranch({fromHub, hub, fromPin, pinEl, text}){
 
   return branch;
 }
+
+/* Render de una rama (desde hub o pin) hasta la etiqueta */
 function renderBranch(branch){
   const sx = branch.fromHub ? branch.hub.x : terminalEdge(branch.pinEl).x;
   const sy = branch.fromHub ? branch.hub.y : terminalEdge(branch.pinEl).y;
@@ -703,8 +706,8 @@ function convertWireToLabel(conn){
   conn.hit && conn.hit.remove(); conn.hit=null;
   (conn.handles||[]).forEach(h=>h.remove()); conn.handles=[];
 
-  const srcName = getDestNameWithPin(conn);
-  const inName  = getSourceName(conn);
+  const srcName = getDestNameWithPin(conn); // etiqueta en salida: destino/pin
+  const inName  = getSourceName(conn);      // etiqueta en entrada: origen
 
   const hub = ensureHub(conn.from);
   const srcBranch = createBranch({fromHub:true, hub, text:srcName});
@@ -727,7 +730,7 @@ function createConnection(fromTerm,toTerm){
   connections.push(conn); renderConnection(conn);
 }
 
-/* Menú contextual del cable */
+/* Menú contextual en cables (solo modo wire) */
 const wireMenu = document.getElementById('wireMenu');
 const menuAddNode = document.getElementById('menuAddNode');
 const menuMakeLabel = document.getElementById('menuMakeLabel');
@@ -760,25 +763,50 @@ menuMakeLabel.addEventListener('click', ()=>{
 });
 document.addEventListener('click', (e)=>{ if(e.target!==wireMenu && !wireMenu.contains(e.target)) hideWireMenu(); });
 
-/* Render conexión (wire o label) + señal */
+/* << NUEVO: aplica señal a pines/etiquetas/ramas/troncal según valor >> */
+function applySignalStyles(conn, val){
+  // pines: salida y ENTRADA
+  try{
+    conn.from.classList.toggle('signal-on', val===1);
+    conn.to.classList.toggle('signal-on',   val===1);
+  }catch(e){}
+
+  if(conn.mode==='label'){
+    // ramas
+    if(conn.srcBranch){
+      conn.srcBranch.path.classList.toggle('signal', val===1);
+      conn.srcBranch.tagEl.classList.toggle('signal', val===1);
+    }
+    if(conn.dstBranch){
+      conn.dstBranch.path.classList.toggle('signal', val===1);
+      conn.dstBranch.tagEl.classList.toggle('signal', val===1);
+    }
+    // troncal del hub desde el pin de salida
+    const hub = outputHubs.get(conn.from);
+    if(hub){
+      hub.stemPath.classList.toggle('signal', val===1);
+    }
+  }else{
+    // cable normal
+    if(conn.path) conn.path.classList.toggle('signal', val===1);
+  }
+
+  // indicador Q en bloque fuente (si aplica)
+  const srcNode=nodes.find(n=>n.output===conn.from);
+  if(srcNode && srcNode.qIndicator) srcNode.qIndicator.classList.toggle('on', val===1);
+}
+
+/* Render conexión (wire o label) */
 function renderConnection(conn){
   if(conn.mode==='label'){
-    // Redibujar ramas
     if(conn.srcBranch) renderBranch(conn.srcBranch);
     if(conn.dstBranch) renderBranch(conn.dstBranch);
     const hub = outputHubs.get(conn.from);
     hub && renderHub(hub);
 
-    // Estado de señal para ramas y etiquetas
-    const sig = getSourceNodeValue(conn)===1;
-    if(conn.srcBranch){
-      conn.srcBranch.path.classList.toggle('signal', sig);
-      conn.srcBranch.tagEl.classList.toggle('signal', sig);
-    }
-    if(conn.dstBranch){
-      conn.dstBranch.path.classList.toggle('signal', sig);
-      conn.dstBranch.tagEl.classList.toggle('signal', sig);
-    }
+    // aplicar señal tras render
+    const val = getSourceNodeValue(conn);
+    applySignalStyles(conn, val);
     return;
   }
 
@@ -802,14 +830,16 @@ function renderConnection(conn){
   path.setAttribute("d",d); path.setAttribute("class","wire-path");
   if(conn.selected) path.classList.add('selected');
 
-  const srcVal=getSourceNodeValue(conn);
-  if(srcVal===1) path.classList.add('signal'); else path.classList.remove('signal');
+  const val=getSourceNodeValue(conn);
+  wiresSVG.appendChild(hit);
+  wiresSVG.appendChild(path);
+  conn.hit=hit; conn.path=path;
 
+  // selección/menu/long-press conservados
   const onSelect=(ev)=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); };
   hit.addEventListener('click',onSelect);
   hit.addEventListener('touchstart',onSelect,{passive:true});
   hit.addEventListener('contextmenu',(ev)=>{ ev.preventDefault(); if(simulation) return; showWireMenu(conn, ev.clientX, ev.clientY); });
-
   function onPathDown(ev){
     if(simulation) return;
     if(ev.type==='mousedown' && ev.button!==0) return;
@@ -830,11 +860,10 @@ function renderConnection(conn){
   hit .addEventListener('mousedown',onPathDown);
   hit .addEventListener('touchstart',onPathDown,{passive:false});
 
-  wiresSVG.appendChild(hit);
-  wiresSVG.appendChild(path);
-  conn.hit=hit; conn.path=path;
+  // aplica estilos de señal (pin entrada + cable)
+  applySignalStyles(conn, val);
 
-  // Handles (si está seleccionado)
+  // handles si está seleccionado
   if(conn.selected && !simulation){
     conn.handles=[];
     conn.bends.forEach((b,idx)=>{
@@ -850,8 +879,6 @@ function renderConnection(conn){
       hitC.addEventListener('mousedown',start); hitC.addEventListener('touchstart',start,{passive:true});
     });
   }
-
-  updatePinsVisual(conn, srcVal);
 }
 
 /* Bend dragging para cables normales */
@@ -888,15 +915,7 @@ function onBendMoveTouch(ev){
   renderConnection(conn);
 }
 
-/* Utilidades pins/señal visual */
-function updatePinsVisual(conn, srcVal){
-  try{
-    conn.from.classList.toggle('signal-on', srcVal===1); // salida
-    conn.to.classList.toggle('signal-on', srcVal===1);   // entrada (nuevo)
-  }catch(e){}
-  const srcNode=nodes.find(n=>n.output===conn.from);
-  srcNode && srcNode.qIndicator && srcNode.qIndicator.classList.toggle('on', srcVal===1);
-}
+/* Utilidades */
 function getSourceNodeValue(conn){ const n=nodes.find(nn=>nn.output===conn.from); return n? n.value:0; }
 function updateConnections(){ connections.forEach(c=>renderConnection(c)); }
 
@@ -969,12 +988,9 @@ function evaluateGate(type,inputs){
   }
 }
 
-/* Escaneo + visual de señal en nodos y pines de entrada */
 function scanLogic(){
-  // valores de entradas
   nodes.forEach(n=>{ if(n.type==='input') n.value = n.el.classList.contains('active')?1:0; n.invalid=false; });
 
-  // calcular salidas
   nodes.forEach(node=>{
     node.nextValue=node.value; if(node.type==='input') return;
     const inVals=connections.filter(c=>node.inputs.includes(c.to)).map(c=>{
@@ -994,33 +1010,14 @@ function scanLogic(){
     }else node.nextValue=evaluateGate(node.type,inVals)?1:0;
   });
 
-  // aplicar resultados
   nodes.forEach(n=>{ n.value=n.nextValue; if(n.type==='sr') n.q=n.nextValue; });
 
-  // reset visual de pines de entrada
-  nodes.forEach(n=> n.inputs.forEach(inp=> inp.classList.remove('signal-on')) );
-
-  // marcar pines de entrada con señal en base a conexiones
+  // Actualizar estilos de señal en TODAS las conexiones (cables, etiquetas, pines de entrada)
   connections.forEach(c=>{
-    const val = getSourceNodeValue(c);
-    c.to.classList.toggle('signal-on', val===1);
+    const v=getSourceNodeValue(c);
+    applySignalStyles(c, v);
   });
 
-  // visual nodos y pins
-  nodes.forEach(n=>{
-    const isOn = n.value===1;
-    n.el.classList.toggle('on', isOn); // bloque en color cuando su salida está en 1
-    if(n.type==='input' || n.type==='output' || n.type==='M'){
-      n.el.classList.toggle('active', isOn);
-      n.output && n.output.classList.toggle('signal-on', isOn);
-    }else{
-      n.el.classList.remove('active');
-    }
-    n.qIndicator && n.qIndicator.classList.toggle('on', isOn);
-    n.el.classList.toggle('error', !!n.invalid);
-  });
-
-  // cables/etiquetas
   updateConnections();
 }
 
@@ -1036,10 +1033,12 @@ document.getElementById('stop').addEventListener('click', ()=>{
     n.value=0;
     if(n.type==='input'||n.type==='output'||n.type==='M') n.el.classList.remove('active');
     n.qIndicator && n.qIndicator.classList.remove('on');
-    n.invalid=false; n.output && n.output.classList.remove('signal-on');
-    n.el.classList.remove('on');
-    n.inputs.forEach(inp=>inp.classList.remove('signal-on'));
+    n.invalid=false;
+    n.output && n.output.classList.remove('signal-on');
+    n.inputs?.forEach(inp=>inp.classList.remove('signal-on'));
   });
+  // Quitar señal visual de todo
+  connections.forEach(c=>applySignalStyles(c, 0));
   updateConnections();
 });
 document.getElementById('deleteBtn').addEventListener('click', ()=>{
@@ -1092,6 +1091,7 @@ workspace.addEventListener('click', (e)=>{
 /* Teclas */
 document.getElementById('zoomIn').addEventListener('click', ()=>setZoom(scale+0.12));
 document.getElementById('zoomOut').addEventListener('click', ()=>setZoom(scale-0.12));
+
 document.addEventListener('keydown', (e)=>{
   if(e.key==='Delete' || e.key==='Backspace'){
     if(simulation) return;
@@ -1105,7 +1105,7 @@ window.addEventListener('resize', updateConnections);
 
 /* Init */
 updateConnections();
-console.log("SIMUPASIR: señales en cables, etiquetas, bloques y pines de entrada.");
+console.log("SIMUPASIR: Etiquetas con troncal compartido, junta negra y ramas ajustables (+ señal en etiquetas, pines de entrada y cables de etiquetas).");
 </script>
 </body>
 </html>
