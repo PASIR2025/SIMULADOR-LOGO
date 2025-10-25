@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>SIMUPASIR — TON / TOFF</title>
+<title>SIMUPASIR — TON / TOFF con tiempo visible</title>
 
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#003366">
@@ -32,12 +32,6 @@
   html,body{height:100%}
   body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;display:flex;height:100vh;overflow:hidden;background:#fff}
 
-  /* Sidebar */
-  #sidebar{width:150px;background:var(--sidebar);padding:10px;border-right:3px solid #bdb089;display:flex;flex-direction:column;gap:8px;box-sizing:border-box;z-index:60}
-  #sidebar > div[style*="font-weight"]{font-size:13px}
-  .component{background:var(--node);border:2px solid #7a7a7a;border-radius:8px;padding:6px;text-align:center;cursor:grab;user-select:none;font-weight:700;font-size:20px;line-height:1.05;box-shadow:0 2px 0 rgba(0,0,0,.06)}
-  .component.selected{outline:3px solid #0078d7;outline-offset:2px}
-
   /* Canvas */
   #canvas{flex:1;background:#fff;position:relative;overflow:hidden;touch-action:none}
   #workspace{position:absolute;top:0;left:0;width:var(--workspace-size);height:var(--workspace-size);transform-origin:0 0;background:transparent}
@@ -47,6 +41,11 @@
   .label{font-weight:900;margin-bottom:6px;pointer-events:none;color:#222;font-size:60px;line-height:1.05}
   .selected{box-shadow:0 10px 18px rgba(0,0,0,.12);border-color:#0058a3!important;transform:translateY(-2px)}
   .node.has-signal{border-color:var(--neon)!important; box-shadow:0 0 0 2px rgba(0,255,102,.25), 0 6px 0 rgba(0,0,0,.06)}
+
+  /* Temporizadores: etiqueta más pequeña + readout */
+  .node.timer .label{font-size:36px}
+  .timer-readout{font-variant-numeric:tabular-nums; font-weight:800; margin-top:4px; padding:2px 8px; border:2px solid #003366; border-radius:10px; background:#fff; color:#003366; pointer-events:none}
+  .node.has-signal .timer-readout{border-color:var(--neon); color:#000; background:var(--neon)}
 
   /* Badge B001… */
   .badge{position:absolute;top:6px;left:6px;padding:4px 10px;border-radius:12px;border:2px solid #003366;background:#fff;color:#003366;font-weight:900;font-size:18px;line-height:1;pointer-events:none;user-select:none;box-shadow:0 2px 0 rgba(0,0,0,.06)}
@@ -81,13 +80,7 @@
   .bend-handle.dragging{fill:#e6f3ff}
   .bend-hit{fill:#000;fill-opacity:0;r:24;pointer-events:all}
 
-  /* Etiquetas */
-  .conn-tag{position:absolute;transform:translate(-50%,-50%);background:#fff;border:3px solid #003366;color:#003366;border-radius:12px;padding:6px 12px;font-weight:900;font-size:27px;line-height:1;box-shadow:0 2px 0 rgba(0,0,0,.06);user-select:none;z-index:20;cursor:grab}
-  .conn-tag-src{background:#003366;color:#fff}
-  .conn-tag.selected{outline:3px solid #0078d7;outline-offset:2px}
-  .conn-tag.signal{background:var(--neon);color:#000;border-color:var(--neon);box-shadow:0 0 12px rgba(0,255,102,.45)}
-
-  /* Controles */
+  /* Controles (abajo, iguales) */
   #controls{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--sidebar);padding:8px 12px;border-radius:10px;border:2px solid #bdb089;display:flex;gap:10px;align-items:center;z-index:200}
   #controls button{padding:8px 10px;border-radius:8px;border:1px solid #777;background:#fff;font-weight:700;cursor:pointer}
   #zoomIn,#zoomOut{padding:6px 10px}
@@ -99,15 +92,16 @@
 
   #installBtn{display:none;position:fixed;right:12px;bottom:80px;z-index:210;background:#003366;color:#fff;border:none;padding:10px 14px;border-radius:10px;font-weight:900;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.12)}
 
-  /* FAB y paleta móvil */
-  #fabPalette{position:fixed;left:12px;bottom:12px;z-index:210;background:#003366;color:#fff;border:none;padding:12px 14px;border-radius:999px;font-weight:900;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.12);display:none}
-  #paletteModal{position:fixed;inset:0;display:none;z-index:220;background:rgba(0,0,0,.35)}
-  #paletteSheet{position:absolute;left:0;right:0;bottom:0;background:#fff;border-radius:16px 16px 0 0;padding:14px;border-top:3px solid #003366}
-  #paletteGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-  .pick{background:#fff8dc;border:2px solid #7a7a7a;border-radius:10px;padding:10px;font-weight:800;font-size:20px;text-align:center;cursor:pointer}
+  /* ======= Menú de Biblioteca (arriba izquierda) ======= */
+  #libraryBtn{position:fixed;left:12px;top:12px;z-index:220;background:#003366;color:#fff;border:none;padding:10px 12px;border-radius:10px;font-weight:900;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.12)}
+  #libraryModal{position:fixed;inset:0;display:none;z-index:230;background:rgba(0,0,0,.35)}
+  #librarySheet{position:absolute;left:12px;top:60px;bottom:12px;width:280px;max-width:90vw;background:#fff;border-radius:12px;border:2px solid #003366;box-shadow:0 10px 24px rgba(0,0,0,.2);padding:12px;overflow:auto}
+  #librarySheet h3{margin:0 0 10px;font-size:16px;color:#003366}
+  #paletteGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .pick{background:#fff8dc;border:2px solid #7a7a7a;border-radius:10px;padding:10px;font-weight:800;font-size:18px;text-align:center;cursor:pointer}
 
   /* Menú contextual del cable */
-  #wireMenu{position:fixed;z-index:230;display:none;background:#fff;border:2px solid #00366; border-color:#003366;border-radius:12px;box-shadow:0 10px 24px rgba(0,0,0,.18);overflow:hidden}
+  #wireMenu{position:fixed;z-index:240;display:none;background:#fff;border:2px solid #00366; border-color:#003366;border-radius:12px;box-shadow:0 10px 24px rgba(0,0,0,.18);overflow:hidden}
   #wireMenu button{display:block;width:100%;background:#fff;border:0;border-bottom:1px solid #e5e5e5;padding:10px 14px;font-weight:800;cursor:pointer;text-align:left}
   #wireMenu button:last-child{border-bottom:0}
   #wireMenu button:hover{background:#f5f9ff}
@@ -125,45 +119,18 @@
   @supports(padding:max(0px)){
     #controls{bottom:calc(12px + env(safe-area-inset-bottom))}
     #installBtn{bottom:calc(80px + env(safe-area-inset-bottom))}
-    #fabPalette{bottom:calc(12px + env(safe-area-inset-bottom))}
-  }
-  @media (max-width:720px){
-    #sidebar{display:none}
-    #fabPalette{display:block}
   }
 </style>
 </head>
 <body>
 
-  <div id="sidebar">
-    <div style="font-weight:900">SIMUPASIR — Componentes</div>
-    <div class="component" draggable="true" data-type="input">Entrada (I)</div>
-    <div class="component" draggable="true" data-type="output">Salida (Q)</div>
-    <div class="component" draggable="true" data-type="M">Memoria (M)</div>
-    <div style="height:4px"></div>
-    <div class="component" draggable="true" data-type="and">AND</div>
-    <div class="component" draggable="true" data-type="or">OR</div>
-    <div class="component" draggable="true" data-type="not">NOT</div>
-    <div class="component" draggable="true" data-type="nand">NAND</div>
-    <div class="component" draggable="true" data-type="nor">NOR</div>
-    <div class="component" draggable="true" data-type="xor">XOR</div>
-    <div class="component" draggable="true" data-type="xnor">XNOR</div>
-    <div style="height:4px"></div>
-    <div class="component" draggable="true" data-type="sr">SR (Set/Reset)</div>
-    <div style="height:4px"></div>
-    <!-- NUEVOS -->
-    <div class="component" draggable="true" data-type="ton">TON</div>
-    <div class="component" draggable="true" data-type="toff">TOFF</div>
-
-    <div style="flex:1"></div>
-    <div style="font-size:11px;color:#333">Conecta: salida → entrada.</div>
-  </div>
-
+  <!-- Área de trabajo -->
   <div id="canvas">
     <div id="workspace">
       <svg id="wires" xmlns="http://www.w3.org/2000/svg" width="5000" height="5000" viewBox="0 0 5000 5000" preserveAspectRatio="none"></svg>
     </div>
 
+    <!-- Controles inferiores (igual que antes) -->
     <div id="controls">
       <button id="simulate">Simular</button>
       <button id="stop">Detener</button>
@@ -173,20 +140,20 @@
     </div>
   </div>
 
-  <div id="brand">SIMUPASIR</div>
-  <button id="installBtn">Instalar SIMUPASIR</button>
-  <button id="fabPalette">🧩 Bloques</button>
+  <!-- Botón para abrir biblioteca -->
+  <button id="libraryBtn">☰ Bloques</button>
 
-  <!-- Modal paleta -->
-  <div id="paletteModal" aria-hidden="true">
-    <div id="paletteSheet">
-      <div style="font-weight:900;margin-bottom:10px;color:#003366">Elige un bloque</div>
+  <!-- Biblioteca modal -->
+  <div id="libraryModal" aria-hidden="true">
+    <div id="librarySheet">
+      <h3>Biblioteca de bloques</h3>
       <div id="paletteGrid"></div>
-      <div style="margin-top:10px;display:flex;justify-content:center">
-        <button id="closePalette" style="padding:8px 12px;border-radius:8px;border:1px solid #777;background:#fff;font-weight:700">Cerrar</button>
-      </div>
     </div>
   </div>
+
+  <!-- Marca / PWA -->
+  <div id="brand">SIMUPASIR</div>
+  <button id="installBtn">Instalar SIMUPASIR</button>
 
   <!-- Menú contextual del cable -->
   <div id="wireMenu">
@@ -198,8 +165,8 @@
   <div id="timerModal">
     <div id="timerCard">
       <h3 id="timerTitle">Configurar temporizador</h3>
-      <label for="timerMs">Tiempo (ms)</label>
-      <input id="timerMs" type="number" min="0" step="10" value="1000" />
+      <label for="timerSec">Tiempo (segundos)</label>
+      <input id="timerSec" type="number" min="0" step="0.1" value="1.0" />
       <div id="timerActions">
         <button id="btnTimerCancel">Cancelar</button>
         <button id="btnTimerSave">Guardar</button>
@@ -219,7 +186,6 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
 const canvas = document.getElementById("canvas");
 const workspace = document.getElementById("workspace");
 const wiresSVG = document.getElementById("wires");
-const components = document.querySelectorAll(".component");
 
 let nodes=[], connections=[], pendingOutput=null, pendingGhost=null;
 let simulation=false;
@@ -235,13 +201,38 @@ let longPressTimer=null;
 let currentToPlace=null;
 let selectedPinEl=null;
 
+/* ===== Biblioteca (menú) ===== */
+const libraryBtn = document.getElementById('libraryBtn');
+const libraryModal = document.getElementById('libraryModal');
+const paletteGrid = document.getElementById('paletteGrid');
+const PALETTE_TYPES = ['input','output','M','and','or','not','nand','nor','xor','xnor','sr','ton','toff'];
+
+function openLibrary(){
+  paletteGrid.innerHTML='';
+  PALETTE_TYPES.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='pick';
+    b.textContent=t.toUpperCase();
+    b.onclick=()=>{ currentToPlace=t; closeLibrary(); };
+    paletteGrid.appendChild(b);
+  });
+  libraryModal.style.display='block';
+  libraryModal.setAttribute('aria-hidden','false');
+}
+function closeLibrary(){
+  libraryModal.style.display='none';
+  libraryModal.setAttribute('aria-hidden','true');
+}
+libraryBtn.addEventListener('click', openLibrary);
+libraryModal.addEventListener('click', (e)=>{ if(e.target===libraryModal) closeLibrary(); });
+
 /* Hubs (juntas) por pin de salida */
 const outputHubs = new WeakMap(); // pinEl -> { x,y, dot, hit, stemPath, branches:Set }
 
 /* ===== Timer config modal ===== */
 const timerModal = document.getElementById('timerModal');
 const timerTitle = document.getElementById('timerTitle');
-const timerMsInput = document.getElementById('timerMs');
+const timerSecInput = document.getElementById('timerSec');
 const btnTimerCancel = document.getElementById('btnTimerCancel');
 const btnTimerSave = document.getElementById('btnTimerSave');
 let timerNode=null;
@@ -251,7 +242,7 @@ function openTimerModal(node){
   const kind = node.type.toUpperCase();
   const code = node.code || node.name;
   timerTitle.textContent = `Configurar ${kind} (${code})`;
-  timerMsInput.value = node.delayMs ?? 1000;
+  timerSecInput.value = (node.delayMs ?? 1000) / 1000;
   timerModal.style.display='block';
 }
 function closeTimerModal(){
@@ -261,13 +252,15 @@ function closeTimerModal(){
 btnTimerCancel.addEventListener('click', closeTimerModal);
 btnTimerSave.addEventListener('click', ()=>{
   if(!timerNode) return;
-  let ms = parseInt(timerMsInput.value,10);
-  if(isNaN(ms)||ms<0) ms=0;
-  timerNode.delayMs = ms;
-  // reset de estado interno del temporizador
+  let sec = parseFloat(timerSecInput.value);
+  if(isNaN(sec)||sec<0) sec=0;
+  timerNode.delayMs = Math.round(sec*1000);
+  // reset internos
   timerNode.timerStart=null;
-  timerNode.seenHigh=false;   // para TOFF
   timerNode.prevIn=0;
+  if(timerNode.type==='toff') timerNode.seenHigh=false;
+  // actualizar readout al valor fijo
+  updateTimerReadout(timerNode, sec);
   closeTimerModal();
 });
 timerModal.addEventListener('click',(e)=>{ if(e.target===timerModal) closeTimerModal(); });
@@ -290,8 +283,6 @@ function logoLabelForType(type){
     default:     return (type||'').toUpperCase();
   }
 }
-function nowMs(){ return performance.now ? performance.now() : Date.now(); }
-
 function clientToWorkspace(clientX, clientY){
   const rect = canvas.getBoundingClientRect();
   return { x:(clientX-rect.left-panX)/scale, y:(clientY-rect.top-panY)/scale };
@@ -326,89 +317,6 @@ workspace.addEventListener("mousedown", e=>{
 });
 function doPan(e){ if(!isPanning) return; panX=e.clientX-panStartX; panY=e.clientY-panStartY; updateTransform(); updateConnections(); }
 function endPan(){ isPanning=false; document.removeEventListener("mousemove",doPan); document.removeEventListener("mouseup",endPan); }
-
-/* Touch pan/pinch */
-let touchPan={active:false,id:null,startClientX:0,startClientY:0,startPanX:0,startPanY:0};
-let pinch={active:false,startDist:0,startScale:1,cx:0,cy:0};
-workspace.addEventListener('touchstart', e=>{
-  if(e.touches.length===1 && !pinch.active){
-    const t=e.touches[0];
-    const target=document.elementFromPoint(t.clientX,t.clientY);
-    if(target===workspace || target===wiresSVG){
-      touchPan={active:true,id:t.identifier,startClientX:t.clientX,startClientY:t.clientY,startPanX:panX,startPanY:panY};
-      clearSelection(); e.preventDefault();
-    }
-  } else if(e.touches.length===2){
-    pinch.active=true;
-    const dx=e.touches[1].clientX-e.touches[0].clientX;
-    const dy=e.touches[1].clientY-e.touches[0].clientY;
-    pinch.startDist=Math.hypot(dx,dy); pinch.startScale=scale;
-    pinch.cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
-    pinch.cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
-    touchPan.active=false; e.preventDefault();
-  }
-},{passive:false});
-workspace.addEventListener('touchmove', e=>{
-  if(pinch.active && e.touches.length>=2){
-    const dx=e.touches[1].clientX-e.touches[0].clientX, dy=e.touches[1].clientY-e.touches[0].clientY;
-    const dist=Math.hypot(dx,dy); let newScale=pinch.startScale*dist/pinch.startDist; newScale=Math.max(.25,Math.min(3,newScale));
-    const rect=canvas.getBoundingClientRect();
-    const fx=(pinch.cx-rect.left-panX)/scale, fy=(pinch.cy-rect.top-panY)/scale;
-    panX=pinch.cx-rect.left-fx*newScale; panY=pinch.cy-rect.top-fy*newScale; scale=newScale;
-    updateTransform(); updateConnections(); e.preventDefault(); return;
-  }
-  if(!touchPan.active) return;
-  for(const t of e.touches){
-    if(t.identifier===touchPan.id){
-      panX=touchPan.startPanX+(t.clientX-touchPan.startClientX);
-      panY=touchPan.startPanY+(t.clientY-touchPan.startClientY);
-      updateTransform(); updateConnections(); e.preventDefault(); return;
-    }
-  }
-},{passive:false});
-workspace.addEventListener('touchend', e=>{
-  if(pinch.active && e.touches.length<2) pinch.active=false;
-  if(!touchPan.active) return;
-  let still=false; for(const t of e.touches){ if(t.identifier===touchPan.id) still=true; }
-  if(!still) touchPan.active=false;
-});
-
-/* DnD + selección paleta */
-components.forEach(comp=>{
-  comp.addEventListener("dragstart", e=>{
-    e.dataTransfer.setData("application/x-simupasir", comp.dataset.type);
-    e.dataTransfer.setData("text/plain", comp.dataset.type);
-    e.dataTransfer.effectAllowed='copy';
-  });
-  comp.addEventListener("click", ()=>{ currentToPlace = comp.dataset.type; components.forEach(c=>c.classList.remove('selected')); comp.classList.add('selected'); });
-});
-canvas.addEventListener("dragover", e=>{ e.preventDefault(); e.dataTransfer.dropEffect='copy'; });
-canvas.addEventListener("drop", e=>{
-  e.preventDefault(); if(simulation) return;
-  const type=e.dataTransfer.getData("application/x-simupasir")||e.dataTransfer.getData("text/plain");
-  if(!type) return; const pos=clientToWorkspace(e.clientX,e.clientY); createNode(type,pos.x,pos.y);
-});
-
-/* Paleta móvil */
-const fab = document.getElementById('fabPalette');
-const modal = document.getElementById('paletteModal');
-const grid = document.getElementById('paletteGrid');
-const closePalette = document.getElementById('closePalette');
-const PALETTE_TYPES = ['input','output','M','and','or','not','nand','nor','xor','xnor','sr','ton','toff'];
-function openPalette(){
-  grid.innerHTML='';
-  PALETTE_TYPES.forEach(t=>{
-    const b=document.createElement('button');
-    b.className='pick'; b.textContent=t.toUpperCase();
-    b.onclick=()=>{ currentToPlace=t; closePaletteModal(); };
-    grid.appendChild(b);
-  });
-  modal.style.display='block'; modal.setAttribute('aria-hidden','false');
-}
-function closePaletteModal(){ modal.style.display='none'; modal.setAttribute('aria-hidden','true'); }
-fab.addEventListener('click', openPalette);
-closePalette.addEventListener('click', closePaletteModal);
-modal.addEventListener('click', (e)=>{ if(e.target===modal) closePaletteModal(); });
 
 /* Tap para colocar o deseleccionar */
 canvas.addEventListener('click', e=>{
@@ -485,18 +393,18 @@ function createNode(type,x,y){
 
   const node={ el:div, type, name:display, code:blockCode, inputs, output, value:0, nextValue:0, qIndicator:qind, invalid:false };
 
-  /* Estado extra para temporizadores */
+  /* Temporizadores */
   if(type==='ton' || type==='toff'){
     node.delayMs = 1000;     // por defecto 1s
-    node.timerStart = null;  // instante de inicio del conteo
-    node.prevIn = 0;         // último valor de entrada
-  }
-  if(type==='toff'){
-    node.seenHigh = false;   // aún no fue energizado (clave para no contar al inicio)
-  }
+    node.timerStart = null;
+    node.prevIn = 0;
+    // UI: label pequeña + readout
+    div.classList.add('timer');
+    const ro=document.createElement('div'); ro.className='timer-readout'; ro.textContent='t=1.0s';
+    div.appendChild(ro);
+    node.readout = ro;
 
-  // Doble clic/tap para configurar temporizador
-  if(type==='ton' || type==='toff'){
+    // Doble click/tap para configurar
     div.addEventListener('dblclick', (e)=>{ e.stopPropagation(); openTimerModal(node); });
     let lastTap=0;
     div.addEventListener('touchend', (e)=>{
@@ -505,6 +413,7 @@ function createNode(type,x,y){
       lastTap=now;
     });
   }
+  if(type==='toff'){ node.seenHigh=false; }
 
   if(type==='sr') node.q=0;
   nodes.push(node);
@@ -519,6 +428,9 @@ function createNode(type,x,y){
   dragMove(div,node);
   enableConnections(node);
   div.addEventListener('contextmenu', e=>{ e.preventDefault(); if(!simulation) removeNode(node); });
+
+  // readout inicial
+  if(node.readout) updateTimerReadout(node, (node.delayMs/1000));
 
   updateConnections();
 }
@@ -615,7 +527,7 @@ function ensureHub(pinEl){
   hit.setAttribute('class','hub-hit');
 
   const stem = document.createElementNS("http://www.w3.org/2000/svg","path");
-  stem.setAttribute('class','wire-path'); // troncal corto desde pin → hub
+  stem.setAttribute('class','wire-path');
 
   wiresSVG.appendChild(stem);
   wiresSVG.appendChild(hit);
@@ -784,7 +696,7 @@ function renderBranch(branch){
   branch.tagEl.style.top  = ey + 'px';
 }
 
-/* Convertir un cable a etiquetas + hub/ramas y cable en entrada */
+/* Convertir cable a etiquetas + hub */
 function convertWireToLabel(conn){
   conn.path && conn.path.remove(); conn.path=null;
   conn.hit && conn.hit.remove(); conn.hit=null;
@@ -847,7 +759,7 @@ menuMakeLabel.addEventListener('click', ()=>{
 });
 document.addEventListener('click', (e)=>{ if(e.target!==wireMenu && !wireMenu.contains(e.target)) hideWireMenu(); });
 
-/* ===== Señal a pines/etiquetas/ramas/hub ===== */
+/* ===== Señal visual pines/etiquetas/ramas/hub ===== */
 function applySignalStyles(conn, val){
   try{
     conn.from.classList.toggle('signal-on', val===1);
@@ -964,7 +876,7 @@ function renderConnection(conn){
   }
 }
 
-/* Bend dragging para cables normales */
+/* Bend dragging */
 function startDraggingHandle(conn,index){
   if(conn.handles && conn.handles[index]) conn.handles[index].classList.add('dragging');
   draggingBend={conn,index};
@@ -1056,6 +968,13 @@ function removeConnection(conn){
   if(selectedTag && (selectedTag===conn.tagSrcEl || conn.tagDstEl===selectedTag)){ selectedTag.classList.remove('selected'); selectedTag=null; }
 }
 
+/* ===== Temporizadores: helper de readout ===== */
+function updateTimerReadout(node, seconds){
+  if(!node.readout) return;
+  const s = Math.max(0, seconds);
+  node.readout.textContent = (node.isCounting ? s.toFixed(1)+'s' : ('t='+s.toFixed(1)+'s'));
+}
+
 /* ===== Lógica de compuertas y temporizadores ===== */
 function evaluateGate(type,inputs){
   if(inputs.length===0) return 0;
@@ -1070,7 +989,6 @@ function evaluateGate(type,inputs){
     default: return inputs[0]||0;
   }
 }
-
 function nowMs(){ return performance.now ? performance.now() : Date.now(); }
 
 function scanLogic(){
@@ -1099,33 +1017,42 @@ function scanLogic(){
       else if(S===0 && R===1){ node.q=0; node.nextValue=0; }
       else node.nextValue=node.q||0;
     } else if(node.type==='ton'){
-      // ON-delay: entrada 1 inicia conteo; al cumplirse delay => salida 1; si cae a 0, resetea y salida 0
       const delay = node.delayMs ?? 1000;
       if(in0===1){
         if(node.timerStart==null) node.timerStart = tnow;
-        node.nextValue = (tnow - node.timerStart >= delay) ? 1 : 0;
+        const elapsed = tnow - node.timerStart;
+        node.isCounting = elapsed < delay;
+        node.nextValue = node.isCounting ? 0 : 1;
+        const remaining = Math.max(0, delay - elapsed)/1000;
+        updateTimerReadout(node, node.isCounting ? remaining : delay/1000);
       }else{
         node.timerStart = null;
+        node.isCounting = false;
         node.nextValue = 0;
+        updateTimerReadout(node, (node.delayMs??1000)/1000);
       }
       node.prevIn = in0;
     } else if(node.type==='toff'){
-      // OFF-delay (TOFF) con "armado" solo tras primera energización:
-      // - Si entrada=1: salida=1 inmediata, cancela conteo, marca seenHigh=true
-      // - Si entrada=0 y nunca energizado: salida=0, no cuenta
-      // - Si entrada=0 y ya fue energizado: inicia/continúa conteo; salida=1 hasta que vence y pasa a 0
       const delay = node.delayMs ?? 1000;
       if(in0===1){
         node.seenHigh = true;
         node.timerStart = null;       // cancela conteo off
+        node.isCounting = false;
         node.nextValue = 1;
+        updateTimerReadout(node, delay/1000);
       }else{ // in0 == 0
         if(!node.seenHigh){
-          node.nextValue = 0;         // aún no ha sido energizado
+          node.nextValue = 0;
           node.timerStart = null;
+          node.isCounting = false;
+          updateTimerReadout(node, delay/1000);
         }else{
           if(node.timerStart==null) node.timerStart = tnow;
-          node.nextValue = (tnow - node.timerStart >= delay) ? 0 : 1;
+          const elapsed = tnow - node.timerStart;
+          const remaining = Math.max(0, delay - elapsed)/1000;
+          node.isCounting = remaining > 0;
+          node.nextValue = node.isCounting ? 1 : 0;
+          updateTimerReadout(node, node.isCounting ? remaining : delay/1000);
         }
       }
       node.prevIn = in0;
@@ -1165,9 +1092,9 @@ document.getElementById('simulate').addEventListener('click', ()=>{
     if(n.type==='ton' || n.type==='toff'){
       n.timerStart = null;
       n.prevIn = 0;
-    }
-    if(n.type==='toff'){
-      n.seenHigh = false; // importante: al iniciar simulación, TOFF no cuenta hasta recibir 1
+      n.isCounting=false;
+      if(n.type==='toff') n.seenHigh=false;
+      if(n.readout) updateTimerReadout(n, (n.delayMs??1000)/1000);
     }
   });
   scanLogic(); simTimer=setInterval(scanLogic,SCAN_MS);
@@ -1184,10 +1111,9 @@ document.getElementById('stop').addEventListener('click', ()=>{
     n.output && n.output.classList.remove('signal-on');
     n.inputs?.forEach(inp=>inp.classList.remove('signal-on'));
     if(n.type==='ton' || n.type==='toff'){
-      n.timerStart=null; n.prevIn=0;
-    }
-    if(n.type==='toff'){
-      n.seenHigh=false;
+      n.timerStart=null; n.prevIn=0; n.isCounting=false;
+      if(n.type==='toff') n.seenHigh=false;
+      if(n.readout) updateTimerReadout(n, (n.delayMs??1000)/1000);
     }
   });
   connections.forEach(c=>applySignalStyles(c, 0));
@@ -1230,17 +1156,7 @@ document.getElementById('deleteBtn').addEventListener('click', ()=>{
   }
 });
 
-/* Click en tag para fijar selectedBranch */
-workspace.addEventListener('click', (e)=>{
-  if(e.target.classList && e.target.classList.contains('conn-tag')){
-    for(const conn of connections){
-      if(conn.srcBranch && conn.srcBranch.tagEl===e.target){ selectedBranch=conn.srcBranch; break; }
-      if(conn.dstBranch && conn.dstBranch.tagEl===e.target){ selectedBranch=conn.dstBranch; break; }
-    }
-  }
-});
-
-/* Teclas */
+/* Teclas + zoom */
 document.getElementById('zoomIn').addEventListener('click', ()=>setZoom(scale+0.12));
 document.getElementById('zoomOut').addEventListener('click', ()=>setZoom(scale-0.12));
 document.addEventListener('keydown', (e)=>{
@@ -1255,8 +1171,23 @@ document.addEventListener('keydown', (e)=>{
 window.addEventListener('resize', updateConnections);
 
 /* Init */
+function updateConnections(){ connections.forEach(c=>renderConnection(c)); }
+function removeGhost(){ if(pendingGhost){ pendingGhost.remove(); pendingGhost=null; } }
+function showGhost(fromTerm){
+  removeGhost();
+  const s=terminalEdge(fromTerm);
+  const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("class","wire-path ghost"); updateGhostPath(path,s.x,s.y,s.x,s.y);
+  wiresSVG.appendChild(path); pendingGhost=path;
+  workspace.addEventListener('mousemove',trackGhost);
+  workspace.addEventListener('touchmove',trackGhostTouch,{passive:false});
+}
+function trackGhost(e){ if(!pendingGhost||!pendingOutput) return; const p=clientToWorkspace(e.clientX,e.clientY); const s=terminalEdge(pendingOutput); updateGhostPath(pendingGhost,s.x,s.y,p.x,p.y); }
+function trackGhostTouch(e){ if(!pendingGhost||!pendingOutput) return; const t=e.touches[0]; const p=clientToWorkspace(t.clientX,t.clientY); const s=terminalEdge(pendingOutput); updateGhostPath(pendingGhost,s.x,s.y,p.x,p.y); e.preventDefault(); }
+function updateGhostPath(path,sx,sy,ex,ey){ const midX=(sx+ex)/2; path.setAttribute('d',`M${sx},${sy} L${midX},${sy} L${midX},${ey} L${ex},${ey}`); }
+
 updateConnections();
-console.log("SIMUPASIR: TON/TOFF corregidos (TOFF arranca tras primera energización).");
+console.log("SIMUPASIR: TON/TOFF con readout en segundos y biblioteca en menú.");
 </script>
 </body>
 </html>
