@@ -39,10 +39,12 @@
   .tb-btn{padding:7px 10px;border-radius:8px;border:1px solid #777;background:#fff;font-weight:800;cursor:pointer}
   .tb-sep{flex:1}
   #simulate.sim-on{background:#00a651;color:#fff;border-color:#00a651}
+  #placeHint{font-size:12px;color:#003366;font-weight:800;display:none}
 
   /* Canvas */
   #canvas{flex:1;background:#fff;position:relative;overflow:hidden;touch-action:none}
   #workspace{position:absolute;top:46px;left:0;width:var(--workspace-size);height:calc(var(--workspace-size) - 46px);transform-origin:0 0;background:transparent}
+  #workspace.placing{cursor:crosshair}
 
   /* Nodos */
   .node{position:absolute;background:var(--node);border:3px solid var(--accent);border-radius:10px;
@@ -108,6 +110,7 @@
   <!-- Top bar -->
   <div id="topbar">
     <button id="libraryBtn">☰ Bloques</button>
+    <span id="placeHint">Haz clic en el lienzo para colocar… (Esc para cancelar)</span>
     <div class="tb-sep"></div>
     <button id="simulate" class="tb-btn">Simular</button>
     <button id="stop" class="tb-btn">Detener</button>
@@ -128,7 +131,7 @@
   <!-- Biblioteca modal -->
   <div id="libraryModal" aria-hidden="true">
     <div id="librarySheet">
-      <h3>Biblioteca (arrastra al espacio)</h3>
+      <h3>Biblioteca (arrastra o haz clic)</h3>
       <div id="paletteGrid"></div>
     </div>
   </div>
@@ -165,10 +168,18 @@ let scale=1, panX=0, panY=46, isPanning=false, panStartX=0, panStartY=0; // panY
 let simTimer=null, SCAN_MS=50;
 let selectedNode=null, selectedConn=null;
 let draggingBend=null;
-let currentToPlace=null;
 let selectedPinEl=null;
 
-/* ===== Biblioteca (arrastrar para colocar) ===== */
+/* NUEVO: modo click-to-place */
+let currentToPlaceType=null;
+
+const placeHint=document.getElementById('placeHint');
+function setPlacing(on){
+  workspace.classList.toggle('placing',on);
+  placeHint.style.display = on ? 'inline' : 'none';
+}
+
+/* ===== Biblioteca ===== */
 const libraryBtn=document.getElementById('libraryBtn');
 const libraryModal=document.getElementById('libraryModal');
 const paletteGrid=document.getElementById('paletteGrid');
@@ -181,11 +192,21 @@ function openLibrary(){
     b.className='pick'; b.setAttribute('draggable','true');
     b.textContent=t.toUpperCase();
     b.dataset.type=t;
+
+    /* Drag & drop (PC) */
     b.addEventListener('dragstart', (e)=>{
       e.dataTransfer.setData('application/x-simupasir', t);
       e.dataTransfer.setData('text/plain', t);
       e.dataTransfer.effectAllowed='copy';
     });
+
+    /* Click-to-place (móvil/PC) */
+    b.addEventListener('click', ()=>{
+      currentToPlaceType=t;
+      closeLibrary();
+      setPlacing(true);
+    });
+
     paletteGrid.appendChild(b);
   });
   libraryModal.style.display='block';
@@ -207,6 +228,22 @@ canvas.addEventListener('drop', e=>{
   const pos=clientToWorkspace(e.clientX,e.clientY);
   createNode(type,pos.x,pos.y);
   closeLibrary();
+});
+
+/* ===== Click-to-place sobre el lienzo ===== */
+workspace.addEventListener('click', (e)=>{
+  if(!currentToPlaceType) return;
+  if(e.target!==workspace && e.target!==wiresSVG) return;
+  const pos=clientToWorkspace(e.clientX,e.clientY);
+  createNode(currentToPlaceType,pos.x,pos.y);
+  currentToPlaceType=null;
+  setPlacing(false);
+});
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='Escape' && currentToPlaceType){
+    currentToPlaceType=null;
+    setPlacing(false);
+  }
 });
 
 /* ===== Transform (pan/zoom) ===== */
@@ -468,7 +505,7 @@ function scanLogic(){
       if(A===1){
         out=1;
         node.seenHigh=true;
-        node.timerStart=null; // mientras entra 1, no corre temporizador
+        node.timerStart=null;
         updateTimerReadout(node, node.delayMs/1000);
       }else{
         if(node.seenHigh){
@@ -548,7 +585,7 @@ stopBtn.addEventListener('click', ()=>{
 
 deleteBtn.addEventListener('click', ()=>{
   if(simulation) return;
-  if(isTimerOpen()) return; // no borrar mientras se edita tiempo
+  if(isTimerOpen()) return;
   if(selectedNode){ removeNode(selectedNode); return; }
   if(selectedConn){ removeConnection(selectedConn); updateConnections(); return; }
 });
@@ -613,10 +650,8 @@ function loadProject(data){
   const created=[];
   (data.nlist||[]).forEach(nd=>{
     const n=createNode(nd.type, nd.x||100, nd.y||100);
-    // re-asignar name/code y delay
     n.name=nd.name||n.name;
     if(n.code && nd.code) {
-      // actualizar badge visual
       const b=n.el.querySelector('.badge'); if(b) b.textContent=nd.code;
       n.code=nd.code;
     }
@@ -640,7 +675,6 @@ function loadProject(data){
 /* ===== Borrar nodo / conexión ===== */
 function removeNode(node){
   if(simulation) return;
-  // quitar conexiones asociadas
   const toRemove=connections.filter(c=> c.from===node.output || node.inputs.includes(c.to));
   toRemove.forEach(removeConnection);
   node.el.remove();
@@ -693,7 +727,6 @@ timerModal.addEventListener('click',(e)=>{ if(e.target===timerModal) closeTimerM
 document.addEventListener('keydown',(e)=>{
   if(isTimerOpen()){
     if(e.key==='Delete' || e.key==='Backspace'){
-      // Permite borrar dentro del input, no borrar bloque
       if(document.activeElement===timerSecInput) return;
       e.preventDefault();
     }
