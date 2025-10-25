@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-<title>SIMUPASIR — TON / TOFF con tiempo visible</title>
+<title>SIMUPASIR — Lógica + TON/TOFF</title>
 
 <!-- PWA -->
 <link rel="manifest" href="./manifest.json">
@@ -25,7 +25,6 @@
     --pin-long:24px;
     --pin-hit-h:28px;
     --pin-visible-h:7px;
-    --round-pin:28px;
 
     --workspace-size:5000px;
   }
@@ -33,35 +32,36 @@
   html,body{height:100%}
   body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;display:flex;height:100vh;overflow:hidden;background:#fff}
 
+  /* Top bar */
+  #topbar{position:fixed;left:0;right:0;top:0;height:46px;display:flex;gap:8px;align-items:center;
+          background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #e5e5e5;z-index:300;padding:6px 10px}
+  #libraryBtn{background:#003366;color:#fff;border:none;padding:8px 10px;border-radius:10px;font-weight:900;cursor:pointer}
+  .tb-btn{padding:7px 10px;border-radius:8px;border:1px solid #777;background:#fff;font-weight:800;cursor:pointer}
+  .tb-sep{flex:1}
+  #simulate.sim-on{background:#00a651;color:#fff;border-color:#00a651}
+
   /* Canvas */
   #canvas{flex:1;background:#fff;position:relative;overflow:hidden;touch-action:none}
-  #workspace{position:absolute;top:0;left:0;width:var(--workspace-size);height:var(--workspace-size);transform-origin:0 0;background:transparent}
+  #workspace{position:absolute;top:46px;left:0;width:var(--workspace-size);height:calc(var(--workspace-size) - 46px);transform-origin:0 0;background:transparent}
 
-  /* Bloques */
-  .node{position:absolute;background:var(--node);border:3px solid var(--accent);border-radius:10px;width:150px;height:225px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:move;user-select:none;padding:8px;box-sizing:border-box;box-shadow:0 6px 0 rgba(0,0,0,.06);z-index:10;touch-action:none}
-  .label{font-weight:900;margin-bottom:6px;pointer-events:none;color:#222;font-size:60px;line-height:1.05}
+  /* Nodos */
+  .node{position:absolute;background:var(--node);border:3px solid var(--accent);border-radius:10px;
+        width:150px;height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+        text-align:center;cursor:move;user-select:none;padding:8px;box-sizing:border-box;box-shadow:0 6px 0 rgba(0,0,0,.06);z-index:10;touch-action:none}
+  .label{font-weight:900;margin-bottom:4px;pointer-events:none;color:#222;font-size:48px;line-height:1.05}
   .selected{box-shadow:0 10px 18px rgba(0,0,0,.12);border-color:#0058a3!important;transform:translateY(-2px)}
-  .node.has-signal{border-color:var(--neon)!important; box-shadow:0 0 0 2px rgba(0,255,102,.25), 0 6px 0 rgba(0,0,0,.06)}
+  .node.has-signal{border-color:var(--neon)!important;box-shadow:0 0 0 2px rgba(0,255,102,.25), 0 6px 0 rgba(0,0,0,.06)}
 
-  /* Temporizadores: etiqueta más pequeña + readout */
-  .node.timer .label{font-size:36px}
-  .timer-readout{font-variant-numeric:tabular-nums; font-weight:800; margin-top:4px; padding:2px 8px; border:2px solid #003366; border-radius:10px; background:#fff; color:#003366; pointer-events:none}
-  .node.has-signal .timer-readout{border-color:var(--neon); color:#000; background:var(--neon)}
-
-  /* Badge B001… */
-  .badge{position:absolute;top:6px;left:6px;padding:4px 10px;border-radius:12px;border:2px solid #003366;background:#fff;color:#003366;font-weight:900;font-size:18px;line-height:1;pointer-events:none;user-select:none;box-shadow:0 2px 0 rgba(0,0,0,.06)}
+  .badge{position:absolute;top:6px;left:6px;padding:4px 10px;border-radius:12px;border:2px solid #003366;background:#fff;color:#003366;font-weight:900;font-size:16px;line-height:1;pointer-events:none;user-select:none}
 
   /* Pines */
   .terminal{position:absolute;cursor:pointer;border-radius:8px;box-shadow:0 1px 0 rgba(0,0,0,.08);height:var(--pin-hit-h);background:transparent}
   .terminal::before{content:"";position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);height:var(--pin-visible-h);border-radius:4px;background:var(--pin);display:block}
   .terminal.input{width:var(--pin-long);left:calc(-1 * var(--pin-long))}
   .terminal.output{width:var(--pin-long);right:calc(-1 * var(--pin-long));top:50%;transform:translateY(-50%)}
-  .terminal.output.out-round{width:var(--round-pin);right:calc(-1 * var(--round-pin))}
-  .terminal.output.out-round::before{width:var(--round-pin);height:var(--round-pin);border-radius:50%;background:#000;left:auto;right:0}
   .terminal.pin-selected::before{background:#0078d7!important;box-shadow:0 0 0 3px rgba(0,120,215,.25)}
   .terminal.pin-target{outline:2px solid #0078d7;outline-offset:2px}
   .terminal.signal-on::before{background:var(--neon)!important}
-  .term-label{position:absolute;left:calc(-1 * var(--pin-long) - 36px);width:40px;text-align:right;font-size:12px;color:#222;user-select:none}
 
   /* Cables */
   #wires{position:absolute;top:0;left:0;width:var(--workspace-size);height:var(--workspace-size);pointer-events:auto;z-index:6}
@@ -71,41 +71,22 @@
   .wire-path.selected{stroke:#0078d7;stroke-width:6}
   .wire-path.ghost{stroke-dasharray:6 6;opacity:.75}
 
-  /* Hubs (juntas) */
-  .hub-dot{fill:#000;stroke:#000;stroke-width:1.5;pointer-events:all;cursor:grab}
-  .hub-hit{fill:#000;fill-opacity:0;pointer-events:all;cursor:grab}
-  .hub-dot.signal{fill:var(--neon);stroke:var(--neon);filter:drop-shadow(0 0 8px rgba(0,255,102,.45))}
-
-  /* Handles (nodos) */
-  .bend-handle{fill:#fff;stroke:#0078d7;stroke-width:2.5px;r:11;cursor:grab;pointer-events:all}
-  .bend-handle.dragging{fill:#e6f3ff}
-  .bend-hit{fill:#000;fill-opacity:0;r:24;pointer-events:all}
-
-  /* Controles inferiores */
-  #controls{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--sidebar);padding:8px 12px;border-radius:10px;border:2px solid #bdb089;display:flex;gap:10px;align-items:center;z-index:200}
-  #controls button{padding:8px 10px;border-radius:8px;border:1px solid #777;background:#fff;font-weight:700;cursor:pointer}
-  #zoomIn,#zoomOut{padding:6px 10px}
-
-  .q-indicator{width:18px;height:18px;border-radius:50%;background:#444;margin-top:8px;pointer-events:none;border:2px solid #222}
+  /* Indicador Q mini */
+  .q-indicator{width:14px;height:14px;border-radius:50%;background:#444;margin-top:6px;pointer-events:none;border:2px solid #222}
   .q-indicator.on{background:var(--neon);box-shadow:0 0 8px rgba(0,255,102,.45)}
 
-  #brand{position:fixed;right:12px;bottom:12px;background:rgba(0,0,0,.06);padding:8px 12px;border-radius:8px;font-weight:900;letter-spacing:1px;z-index:60;box-shadow:0 6px 0 rgba(0,0,0,.04)}
+  /* Temporizadores */
+  .node.timer .label{font-size:32px}
+  .timer-readout{font-variant-numeric:tabular-nums;font-weight:800;margin-top:4px;padding:2px 8px;border:2px solid #003366;border-radius:10px;background:#fff;color:#003366;pointer-events:none}
+  .node.has-signal .timer-readout{border-color:var(--neon);color:#000;background:var(--neon)}
 
-  #installBtn{display:none;position:fixed;right:12px;bottom:80px;z-index:210;background:#003366;color:#fff;border:none;padding:10px 14px;border-radius:10px;font-weight:900;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.12)}
-
-  /* ======= Menú de Biblioteca (arriba izquierda) ======= */
-  #libraryBtn{position:fixed;left:12px;top:12px;z-index:220;background:#003366;color:#fff;border:none;padding:10px 12px;border-radius:10px;font-weight:900;cursor:pointer;box-shadow:0 6px 0 rgba(0,0,0,.12)}
-  #libraryModal{position:fixed;inset:0;display:none;z-index:230;background:rgba(0,0,0,.35)}
-  #librarySheet{position:absolute;left:12px;top:60px;bottom:12px;width:280px;max-width:90vw;background:#fff;border-radius:12px;border:2px solid #003366;box-shadow:0 10px 24px rgba(0,0,0,.2);padding:12px;overflow:auto}
+  /* Biblioteca (arriba-izquierda) */
+  #libraryModal{position:fixed;inset:0;display:none;z-index:250;background:rgba(0,0,0,.35)}
+  #librarySheet{position:absolute;left:12px;top:58px;bottom:12px;width:280px;max-width:90vw;background:#fff;border-radius:12px;border:2px solid #003366;box-shadow:0 10px 24px rgba(0,0,0,.2);padding:12px;overflow:auto}
   #librarySheet h3{margin:0 0 10px;font-size:16px;color:#003366}
   #paletteGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-  .pick{background:#fff8dc;border:2px solid #7a7a7a;border-radius:10px;padding:10px;font-weight:800;font-size:18px;text-align:center;cursor:pointer}
-
-  /* Menú contextual del cable */
-  #wireMenu{position:fixed;z-index:240;display:none;background:#fff;border:2px solid #00366; border-color:#003366;border-radius:12px;box-shadow:0 10px 24px rgba(0,0,0,.18);overflow:hidden}
-  #wireMenu button{display:block;width:100%;background:#fff;border:0;border-bottom:1px solid #e5e5e5;padding:10px 14px;font-weight:800;cursor:pointer;text-align:left}
-  #wireMenu button:last-child{border-bottom:0}
-  #wireMenu button:hover{background:#f5f9ff}
+  .pick{background:#fff8dc;border:2px solid #7a7a7a;border-radius:10px;padding:10px;font-weight:800;font-size:18px;text-align:center;cursor:grab}
+  .pick:active{cursor:grabbing}
 
   /* Modal temporizador */
   #timerModal{position:fixed;inset:0;display:none;z-index:300;background:rgba(0,0,0,.4)}
@@ -117,49 +98,39 @@
   #timerActions button{padding:8px 10px;border-radius:8px;border:1px solid #777;background:#fff;font-weight:800;cursor:pointer}
   #btnTimerSave{background:#003366;color:#fff;border-color:#003366}
 
-  @supports(padding:max(0px)){
-    #controls{bottom:calc(12px + env(safe-area-inset-bottom))}
-    #installBtn{bottom:calc(80px + env(safe-area-inset-bottom))}
+  @media (max-width:720px){
+    .node{width:140px;height:180px}
   }
 </style>
 </head>
 <body>
+
+  <!-- Top bar -->
+  <div id="topbar">
+    <button id="libraryBtn">☰ Bloques</button>
+    <div class="tb-sep"></div>
+    <button id="simulate" class="tb-btn">Simular</button>
+    <button id="stop" class="tb-btn">Detener</button>
+    <button id="deleteBtn" class="tb-btn">Eliminar</button>
+    <div class="tb-sep"></div>
+    <button id="saveBtn" class="tb-btn">Guardar</button>
+    <button id="importBtn" class="tb-btn">Importar</button>
+    <input id="fileInput" type="file" accept=".json,application/json" style="display:none" />
+  </div>
 
   <!-- Área de trabajo -->
   <div id="canvas">
     <div id="workspace">
       <svg id="wires" xmlns="http://www.w3.org/2000/svg" width="5000" height="5000" viewBox="0 0 5000 5000" preserveAspectRatio="none"></svg>
     </div>
-
-    <!-- Controles inferiores -->
-    <div id="controls">
-      <button id="simulate">Simular</button>
-      <button id="stop">Detener</button>
-      <button id="deleteBtn">Eliminar</button>
-      <button id="zoomOut" title="Alejar">−</button>
-      <button id="zoomIn" title="Acercar">＋</button>
-    </div>
   </div>
-
-  <!-- Botón para abrir biblioteca -->
-  <button id="libraryBtn">☰ Bloques</button>
 
   <!-- Biblioteca modal -->
   <div id="libraryModal" aria-hidden="true">
     <div id="librarySheet">
-      <h3>Biblioteca de bloques</h3>
+      <h3>Biblioteca (arrastra al espacio)</h3>
       <div id="paletteGrid"></div>
     </div>
-  </div>
-
-  <!-- Marca / PWA -->
-  <div id="brand">SIMUPASIR</div>
-  <button id="installBtn">Instalar SIMUPASIR</button>
-
-  <!-- Menú contextual del cable -->
-  <div id="wireMenu">
-    <button id="menuAddNode">➕ Crear nodo para acomodar</button>
-    <button id="menuMakeLabel">🏷️ Crear etiqueta y eliminar cable</button>
   </div>
 
   <!-- Modal de configuración de temporizadores -->
@@ -178,43 +149,43 @@
 <script>
 /* ===== PWA básico ===== */
 let deferredPrompt=null;
-const installBtn=document.getElementById('installBtn');
-window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; installBtn.style.display='block'; });
-installBtn.addEventListener('click', async()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; installBtn.style.display='none'; deferredPrompt=null; });
+window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; });
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./service-worker.js').catch(console.error); }); }
 
-/* ===== SIMUPASIR ===== */
-const canvas = document.getElementById("canvas");
-const workspace = document.getElementById("workspace");
-const wiresSVG = document.getElementById("wires");
+/* ===== Estado principal ===== */
+const canvas = document.getElementById('canvas');
+const workspace = document.getElementById('workspace');
+const wiresSVG = document.getElementById('wires');
 
 let nodes=[], connections=[], pendingOutput=null, pendingGhost=null;
 let simulation=false;
 let inputCount=0, outputCount=0, memoryCount=0;
 let blockCodeCount=0;  // B001, B002, ...
-let scale=1, panX=0, panY=0, isPanning=false, panStartX=0, panStartY=0;
-let simTimer=null, SCAN_MS=60;
+let scale=1, panX=0, panY=46, isPanning=false, panStartX=0, panStartY=0; // panY inicia bajo la barra
+let simTimer=null, SCAN_MS=50;
 let selectedNode=null, selectedConn=null;
-let selectedTag=null;
-let selectedBranch=null; // para ramas de etiquetas
 let draggingBend=null;
-let longPressTimer=null;
 let currentToPlace=null;
 let selectedPinEl=null;
 
-/* ===== Biblioteca (menú) ===== */
-const libraryBtn = document.getElementById('libraryBtn');
-const libraryModal = document.getElementById('libraryModal');
-const paletteGrid = document.getElementById('paletteGrid');
-const PALETTE_TYPES = ['input','output','M','and','or','not','nand','nor','xor','xnor','sr','ton','toff'];
+/* ===== Biblioteca (arrastrar para colocar) ===== */
+const libraryBtn=document.getElementById('libraryBtn');
+const libraryModal=document.getElementById('libraryModal');
+const paletteGrid=document.getElementById('paletteGrid');
+const PALETTE_TYPES=['input','output','M','and','or','not','nand','nor','xor','xnor','sr','ton','toff'];
 
 function openLibrary(){
   paletteGrid.innerHTML='';
   PALETTE_TYPES.forEach(t=>{
-    const b=document.createElement('button');
-    b.className='pick';
+    const b=document.createElement('div');
+    b.className='pick'; b.setAttribute('draggable','true');
     b.textContent=t.toUpperCase();
-    b.onclick=()=>{ currentToPlace=t; closeLibrary(); };
+    b.dataset.type=t;
+    b.addEventListener('dragstart', (e)=>{
+      e.dataTransfer.setData('application/x-simupasir', t);
+      e.dataTransfer.setData('text/plain', t);
+      e.dataTransfer.effectAllowed='copy';
+    });
     paletteGrid.appendChild(b);
   });
   libraryModal.style.display='block';
@@ -227,93 +198,32 @@ function closeLibrary(){
 libraryBtn.addEventListener('click', openLibrary);
 libraryModal.addEventListener('click', (e)=>{ if(e.target===libraryModal) closeLibrary(); });
 
-/* Hubs (juntas) por pin de salida */
-const outputHubs = new WeakMap(); // pinEl -> { x,y, dot, hit, stemPath, branches:Set }
-
-/* ===== Timer config modal ===== */
-const timerModal = document.getElementById('timerModal');
-const timerTitle = document.getElementById('timerTitle');
-const timerSecInput = document.getElementById('timerSec');
-const btnTimerCancel = document.getElementById('btnTimerCancel');
-const btnTimerSave = document.getElementById('btnTimerSave');
-let timerNode=null;
-
-function isTimerOpen(){ return timerModal.style.display==='block'; }
-
-function openTimerModal(node){
-  timerNode = node;
-  const kind = node.type.toUpperCase();
-  const code = node.code || node.name;
-  timerTitle.textContent = `Configurar ${kind} (${code})`;
-  timerSecInput.value = (node.delayMs ?? 1000) / 1000;
-  timerModal.style.display='block';
-  // deshabilitar eliminar mientras está abierto
-  deleteBtn.disabled = true;
-}
-function closeTimerModal(){
-  timerModal.style.display='none';
-  timerNode=null;
-  deleteBtn.disabled = false;
-}
-btnTimerCancel.addEventListener('click', closeTimerModal);
-btnTimerSave.addEventListener('click', ()=>{
-  if(!timerNode) return;
-  let sec = parseFloat(timerSecInput.value);
-  if(isNaN(sec)||sec<0) sec=0;
-  timerNode.delayMs = Math.round(sec*1000);
-  // reset internos
-  timerNode.timerStart=null;
-  timerNode.prevIn=0;
-  if(timerNode.type==='toff') timerNode.seenHigh=false;
-  // actualizar readout al valor fijo
-  updateTimerReadout(timerNode, sec);
-  closeTimerModal();
+/* ===== DnD sobre el canvas ===== */
+canvas.addEventListener('dragover', e=>{ e.preventDefault(); e.dataTransfer.dropEffect='copy'; });
+canvas.addEventListener('drop', e=>{
+  e.preventDefault(); if(simulation) return;
+  const type=e.dataTransfer.getData("application/x-simupasir")||e.dataTransfer.getData("text/plain");
+  if(!type) return;
+  const pos=clientToWorkspace(e.clientX,e.clientY);
+  createNode(type,pos.x,pos.y);
+  closeLibrary();
 });
-timerModal.addEventListener('click',(e)=>{ if(e.target===timerModal) closeTimerModal(); });
 
-/* ===== Util ===== */
-function zpad(n,len=3){ return String(n).padStart(len,'0'); }
-function logoLabelForType(type){
-  switch(type){
-    case 'and':  return '&';
-    case 'nand': return '&';
-    case 'or':   return '≥1';
-    case 'nor':  return '≥1';
-    case 'not':  return '1';
-    case 'xor':  return '=1';
-    case 'xnor': return '≠1';
-    case 'sr':   return 'S/R';
-    case 'M':    return 'M';
-    case 'ton':  return 'TON';
-    case 'toff': return 'TOFF';
-    default:     return (type||'').toUpperCase();
-  }
-}
-function clientToWorkspace(clientX, clientY){
-  const rect = canvas.getBoundingClientRect();
+/* ===== Transform (pan/zoom) ===== */
+function updateTransform(){ workspace.style.transform=`translate(${panX}px,${panY}px) scale(${scale})`; }
+function clientToWorkspace(clientX,clientY){
+  const rect=canvas.getBoundingClientRect();
   return { x:(clientX-rect.left-panX)/scale, y:(clientY-rect.top-panY)/scale };
 }
-function terminalEdge(term){
-  const rect = term.getBoundingClientRect();
-  const wsRect = workspace.getBoundingClientRect();
-  const isInput=term.classList.contains('input');
-  const isOutput=term.classList.contains('output');
-  const xScreen = isInput ? rect.left : (isOutput ? rect.right : rect.left + rect.width/2);
-  const yScreen = rect.top + rect.height/2;
-  return { x:(xScreen-wsRect.left)/scale, y:(yScreen-wsRect.top)/scale };
-}
-
-/* Zoom & Pan */
 canvas.addEventListener("wheel", e=>{ e.preventDefault(); setZoom(scale + (e.deltaY>0?-0.08:0.08)); });
 function setZoom(next){
-  const rect = canvas.getBoundingClientRect();
-  const cx = rect.left+rect.width/2, cy = rect.top+rect.height/2;
+  const rect=canvas.getBoundingClientRect();
+  const cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
   const fx=(cx-rect.left-panX)/scale, fy=(cy-rect.top-panY)/scale;
-  const newScale = Math.max(.25, Math.min(3,next));
-  panX = cx-rect.left - fx*newScale; panY = cy-rect.top - fy*newScale; scale=newScale;
+  const newScale=Math.max(.25,Math.min(3,next));
+  panX=cx-rect.left-fx*newScale; panY=cy-rect.top-fy*newScale; scale=newScale;
   updateTransform(); updateConnections();
 }
-function updateTransform(){ workspace.style.transform=`translate(${panX}px,${panY}px) scale(${scale})`; }
 workspace.addEventListener("mousedown", e=>{
   if(e.target===workspace){
     if(e.button===0) clearSelection();
@@ -324,159 +234,114 @@ workspace.addEventListener("mousedown", e=>{
 function doPan(e){ if(!isPanning) return; panX=e.clientX-panStartX; panY=e.clientY-panStartY; updateTransform(); updateConnections(); }
 function endPan(){ isPanning=false; document.removeEventListener("mousemove",doPan); document.removeEventListener("mouseup",endPan); }
 
-/* Tap para colocar o deseleccionar */
-canvas.addEventListener('click', e=>{
-  if(e.target===workspace || e.target===wiresSVG){
-    if(currentToPlace){
-      const pos=clientToWorkspace(e.clientX,e.clientY); createNode(currentToPlace,pos.x,pos.y);
-    }else{
-      clearSelection();
-    }
+/* ===== Nodos ===== */
+function zpad(n,len=3){ return String(n).padStart(len,'0'); }
+function logoLabelForType(type){
+  switch(type){
+    case 'and':return '&'; case 'nand':return '&';
+    case 'or':return '≥1'; case 'nor':return '≥1';
+    case 'not':return '1'; case 'xor':return '=1'; case 'xnor':return '≠1';
+    case 'sr':return 'S/R'; case 'M':return 'M';
+    case 'ton':return 'TON'; case 'toff':return 'TOFF';
+    default: return (type||'').toUpperCase();
   }
-});
-
-/* Selección general */
-function selectNode(node){ if(simulation) return; clearSelection(); selectedNode=node; node.el.classList.add('selected'); }
-function selectConnection(conn){ if(simulation) return; clearSelection(); selectedConn=conn; conn.selected=true; conn.path?.classList.add('selected'); renderConnection(conn); }
-function selectTag(tag){ if(selectedTag===tag) return; selectedTag?.classList.remove('selected'); selectedTag=tag; tag.classList.add('selected'); if(selectedConn){ selectedConn.path?.classList.remove('selected'); selectedConn.selected=false; selectedConn=null; } }
-function clearSelection(){
-  if(selectedNode){ selectedNode.el.classList.remove('selected'); selectedNode=null; }
-  if(selectedConn){ selectedConn.path?.classList.remove('selected'); selectedConn.selected=false; selectedConn=null; }
-  if(selectedTag){ selectedTag.classList.remove('selected'); selectedTag=null; }
-  if(selectedBranch){ selectedBranch=null; }
-  if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
-  pendingOutput=null; removeGhost(); hideWireMenu();
-  if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer=null; }
-  connections.forEach(c=>{ (c.handles||[]).forEach(h=>h.remove()); c.handles=[]; });
 }
 
-/* Crear bloque */
 function createNode(type,x,y){
   const div=document.createElement('div'); div.className='node'; div.style.left=x+'px'; div.style.top=y+'px';
 
-  let display = logoLabelForType(type);
-  if(type==='input')  display = `I${++inputCount}`;
-  else if(type==='output') display = `Q${++outputCount}`;
-  else if(type==='M')      display = `M${++memoryCount}`;
+  let display=logoLabelForType(type);
+  if(type==='input') display=`I${++inputCount}`;
+  else if(type==='output') display=`Q${++outputCount}`;
+  else if(type==='M') display=`M${++memoryCount}`;
 
-  /* Badge B001... (no para I/Q/M) */
   let blockCode=null;
   if(type!=='input' && type!=='output' && type!=='M'){
-    blockCode = 'B'+zpad(++blockCodeCount);
+    blockCode='B'+zpad(++blockCodeCount);
     const badge=document.createElement('div'); badge.className='badge'; badge.textContent=blockCode; div.appendChild(badge);
   }
 
   const lbl=document.createElement('div'); lbl.className='label'; lbl.textContent=display; div.appendChild(lbl);
   const qind=document.createElement('div'); qind.className='q-indicator off'; div.appendChild(qind);
 
-  const output=document.createElement('div'); output.className='terminal output';
-  if(type==='not' || type==='nand' || type==='nor'){ output.classList.add('out-round'); }
-  div.appendChild(output);
+  const output=document.createElement('div'); output.className='terminal output'; div.appendChild(output);
 
   const inputs=[];
   if(type==='input'){ div.style.background='#ffe4b5'; }
-  else if(type==='output'||type==='M' || type==='ton' || type==='toff'){
-    const inp=document.createElement('div'); inp.className='terminal input'; inp.style.top='50%'; div.appendChild(inp); inputs.push(inp);
-  } else if(type==='not'){
-    const inp=document.createElement('div'); inp.className='terminal input'; inp.style.top='50%'; div.appendChild(inp); inputs.push(inp);
-  } else if(type==='sr'){
-    const inS=document.createElement('div'); inS.className='terminal input'; inS.style.top='28%';
-    const labelS=document.createElement('div'); labelS.className='term-label'; labelS.style.top='24%'; labelS.textContent='S';
-    const inR=document.createElement('div'); inR.className='terminal input'; inR.style.top='72%';
-    const labelR=document.createElement('div'); labelR.className='term-label'; labelR.style.top='68%'; labelR.textContent='R';
-    div.appendChild(inS); div.appendChild(labelS); div.appendChild(inR); div.appendChild(labelR);
-    inputs.push(inS); inputs.push(inR);
-  }else{
-    const nInputs=4;
-    for(let i=0;i<nInputs;i++){
-      const inp=document.createElement('div'); inp.className='terminal input';
-      inp.style.top = `${(i+1)*100/(nInputs+1)}%`;
-      div.appendChild(inp); inputs.push(inp);
-    }
-  }
+  else { const inp=document.createElement('div'); inp.className='terminal input'; inp.style.top='50%'; div.appendChild(inp); inputs.push(inp); }
 
   workspace.appendChild(div);
 
   const node={ el:div, type, name:display, code:blockCode, inputs, output, value:0, nextValue:0, qIndicator:qind, invalid:false };
-
-  /* Temporizadores */
-  if(type==='ton' || type==='toff'){
-    node.delayMs = 1000;     // por defecto 1s
-    node.timerStart = null;
-    node.prevIn = 0;
-    // UI: label pequeña + readout
-    div.classList.add('timer');
-    const ro=document.createElement('div'); ro.className='timer-readout'; ro.textContent='t=1.0s';
-    div.appendChild(ro);
-    node.readout = ro;
-
-    // Doble click/tap para configurar
-    div.addEventListener('dblclick', (e)=>{ e.stopPropagation(); openTimerModal(node); });
-    let lastTap=0;
-    div.addEventListener('touchend', (e)=>{
-      const now=e.timeStamp || Date.now();
-      if(now - lastTap < 350){ openTimerModal(node); }
-      lastTap=now;
-    });
-  }
-  if(type==='toff'){ node.seenHigh=false; }
-
   if(type==='sr') node.q=0;
+  if(type==='ton' || type==='toff'){
+    node.delayMs=1000; node.timerStart=null; node.prevIn=0;
+    if(type==='toff') node.seenHigh=false;
+    div.classList.add('timer');
+    const ro=document.createElement('div'); ro.className='timer-readout'; ro.textContent='t=1.0s'; div.appendChild(ro);
+    node.readout=ro;
+    // Doble click/tap para configurar
+    div.addEventListener('dblclick',(e)=>{ e.stopPropagation(); openTimerModal(node); });
+    let lastTap=0;
+    div.addEventListener('touchend',(e)=>{ const now=e.timeStamp||Date.now(); if(now-lastTap<350) openTimerModal(node); lastTap=now; });
+  }
+
   nodes.push(node);
 
-  if(node.output){ node.output.style.top='50%'; node.output.style.transform='translateY(-50%)'; }
+  // drag move (si está seleccionado)
+  let sx,sy,ix,iy,dragging=false;
+  div.addEventListener('mousedown', e=>{
+    if(e.target.classList.contains('terminal')) return;
+    if(simulation) return;
+    if(selectedNode!==node) return;
+    e.preventDefault(); sx=e.clientX; sy=e.clientY; ix=parseFloat(div.style.left); iy=parseFloat(div.style.top);
+    dragging=true; document.addEventListener('mousemove',onMove); document.addEventListener('mouseup',onUp);
+  });
+  function onMove(e){ if(!dragging) return; div.style.left=ix+(e.clientX-sx)/scale+'px'; div.style.top=iy+(e.clientY-sy)/scale+'px'; updateConnections(); }
+  function onUp(){ dragging=false; document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
 
   div.addEventListener('click', e=>{ if(e.target.classList.contains('terminal')) return; if(simulation) return; selectNode(node); });
   if(type==='input'){
     div.addEventListener('click', e=>{ if(e.target.classList.contains('terminal')) return; if(!simulation) return; div.classList.toggle('active'); scanLogic(); });
   }
 
-  dragMove(div,node);
   enableConnections(node);
   div.addEventListener('contextmenu', e=>{ e.preventDefault(); if(!simulation) removeNode(node); });
-
-  // readout inicial
-  if(node.readout) updateTimerReadout(node, (node.delayMs/1000));
-
+  if(node.readout) updateTimerReadout(node, node.delayMs/1000);
   updateConnections();
 }
 
-/* Mover bloque */
-function dragMove(el,node){
-  let sx,sy,ix,iy,dragging=false;
-  el.addEventListener('mousedown', e=>{
-    if(e.target.classList.contains('terminal')) return;
-    if(simulation) return;
-    if(selectedNode!==node) return;
-    e.preventDefault(); sx=e.clientX; sy=e.clientY; ix=parseFloat(el.style.left); iy=parseFloat(el.style.top);
-    dragging=true; document.addEventListener('mousemove',onMove); document.addEventListener('mouseup',onUp);
-  });
-  function onMove(e){ if(!dragging) return; el.style.left=ix+(e.clientX-sx)/scale+'px'; el.style.top=iy+(e.clientY-sy)/scale+'px'; updateConnections(); }
-  function onUp(){ dragging=false; document.removeEventListener('mousemove',onMove); document.removeEventListener('mouseup',onUp); }
-  el.addEventListener('touchstart', e=>{
-    if(simulation) return; if(selectedNode!==node) return;
-    const t=e.changedTouches[0]; sx=t.clientX; sy=t.clientY; ix=parseFloat(el.style.left); iy=parseFloat(el.style.top);
-    dragging=true; document.addEventListener('touchmove',onTouchMove,{passive:false}); document.addEventListener('touchend',onTouchEnd);
-    e.stopPropagation(); e.preventDefault();
-  },{passive:false});
-  function onTouchMove(e){ if(!dragging) return; const t=e.changedTouches[0]; el.style.left=ix+(t.clientX-sx)/scale+'px'; el.style.top=iy+(t.clientY-sy)/scale+'px'; updateConnections(); e.preventDefault(); }
-  function onTouchEnd(){ dragging=false; document.removeEventListener('touchmove',onTouchMove); document.removeEventListener('touchend',onTouchEnd); }
+function selectNode(node){ if(simulation) return; clearSelection(); selectedNode=node; node.el.classList.add('selected'); }
+function clearSelection(){
+  if(selectedNode){ selectedNode.el.classList.remove('selected'); selectedNode=null; }
+  if(selectedConn){ selectedConn.path?.classList.remove('selected'); selectedConn.selected=false; selectedConn=null; }
+  if(selectedPinEl){ selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; }
+  pendingOutput=null; removeGhost();
 }
 
-/* Conexiones y pines */
+/* ===== Conexiones ===== */
+function terminalEdge(term){
+  const rect=term.getBoundingClientRect();
+  const wsRect=workspace.getBoundingClientRect();
+  const isInput=term.classList.contains('input');
+  const isOutput=term.classList.contains('output');
+  const xScreen=isInput?rect.left:(isOutput?rect.right:rect.left+rect.width/2);
+  const yScreen=rect.top+rect.height/2;
+  return { x:(xScreen-wsRect.left)/scale, y:(yScreen-wsRect.top)/scale };
+}
+
 function enableConnections(node){
-  const handler = el=>{
+  const handler=el=>{
     if(simulation) return;
     if(el.classList.contains('output')){
-      selectedPinEl?.classList.remove('pin-selected');
-      selectedPinEl=el; el.classList.add('pin-selected');
+      selectedPinEl?.classList.remove('pin-selected'); selectedPinEl=el; el.classList.add('pin-selected');
       pendingOutput=el; showGhost(el); return;
     }
     if(el.classList.contains('input')){
       el.classList.add('pin-target'); setTimeout(()=>el.classList.remove('pin-target'),300);
       if(!pendingOutput) return;
       if(pendingOutput===el){ removeGhost(); selectedPinEl?.classList.remove('pin-selected'); selectedPinEl=null; pendingOutput=null; return; }
-      createConnection(pendingOutput, el);
+      createConnection(pendingOutput,el);
       removeGhost(); selectedPinEl?.classList.remove('pin-selected'); selectedPinEl=null; pendingOutput=null;
     }
   };
@@ -484,7 +349,54 @@ function enableConnections(node){
   node.inputs.forEach(inp=>inp.addEventListener('click', ()=>handler(inp)));
 }
 
-/* Ghost al crear conexión */
+function createConnection(fromTerm,toTerm){
+  if(simulation) return;
+  if(connections.find(c=>c.from===fromTerm && c.to===toTerm)) return;
+  const conn={ from:fromTerm, to:toTerm, path:null, hit:null, bends:[], selected:false };
+  connections.push(conn); renderConnection(conn);
+}
+
+function renderConnection(conn){
+  conn.path?.remove(); conn.hit?.remove();
+
+  const s=terminalEdge(conn.from), e=terminalEdge(conn.to);
+  let d='';
+  if(conn.bends.length===0){
+    const midX=(s.x+e.x)/2; d=`M${s.x},${s.y} L${midX},${s.y} L${midX},${e.y} L${e.x},${e.y}`;
+  }else{
+    const pts=[{x:s.x,y:s.y}].concat(conn.bends).concat([{x:e.x,y:e.y}]);
+    d=`M${pts[0].x},${pts[0].y} `; for(let i=1;i<pts.length;i++){ const p=pts[i-1], n=pts[i]; d+=`L${n.x},${p.y} L${n.x},${n.y} `; }
+  }
+
+  const hit=document.createElementNS("http://www.w3.org/2000/svg","path");
+  hit.setAttribute("d",d); hit.setAttribute("class","wire-hit");
+
+  const path=document.createElementNS("http://www.w3.org/2000/svg","path");
+  path.setAttribute("d",d); path.setAttribute("class","wire-path");
+  if(conn.selected) path.classList.add('selected');
+
+  const srcVal=getSourceNodeValue(conn);
+  path.classList.toggle('signal', srcVal===1);
+
+  const onSelect=(ev)=>{ ev.stopPropagation(); if(simulation) return; clearSelection(); selectedConn=conn; conn.selected=true; path.classList.add('selected'); };
+  hit.addEventListener('click',onSelect);
+  hit.addEventListener('touchstart',onSelect,{passive:true});
+
+  wiresSVG.appendChild(hit);
+  wiresSVG.appendChild(path);
+  conn.hit=hit; conn.path=path;
+
+  // pines color
+  try{
+    conn.from.classList.toggle('signal-on', srcVal===1);
+    conn.to.classList.toggle('signal-on',   srcVal===1);
+  }catch(e){}
+}
+
+function updateConnections(){ connections.forEach(c=>renderConnection(c)); }
+function getSourceNodeValue(conn){ const n=nodes.find(nn=>nn.output===conn.from); return n? n.value:0; }
+
+/* Ghost */
 function showGhost(fromTerm){
   removeGhost();
   const s=terminalEdge(fromTerm);
@@ -503,135 +415,299 @@ function trackGhost(e){ if(!pendingGhost||!pendingOutput) return; const p=client
 function trackGhostTouch(e){ if(!pendingGhost||!pendingOutput) return; const t=e.touches[0]; const p=clientToWorkspace(t.clientX,t.clientY); const s=terminalEdge(pendingOutput); updateGhostPath(pendingGhost,s.x,s.y,p.x,p.y); e.preventDefault(); }
 function updateGhostPath(path,sx,sy,ex,ey){ const midX=(sx+ex)/2; path.setAttribute('d',`M${sx},${sy} L${midX},${sy} L${midX},${ey} L${ex},${ey}`); }
 
-/* ===== Helpers etiquetas ===== */
-function getSourceName(conn){
-  const srcNode = nodes.find(n=>n.output===conn.from);
-  if(!srcNode) return '??';
-  if(srcNode.type==='input'||srcNode.type==='output'||srcNode.type==='M') return srcNode.name;
-  return srcNode.code || 'B???';
+/* ===== Lógica de compuertas y temporizadores ===== */
+function evaluateGate(type,inputs){
+  if(inputs.length===0) return 0;
+  switch(type){
+    case 'and': return inputs.every(v=>v===1)?1:0;
+    case 'or':  return inputs.some(v=>v===1)?1:0;
+    case 'not': return inputs[0]?0:1;
+    case 'nand':return inputs.every(v=>v===1)?0:1;
+    case 'nor': return inputs.some(v=>v===1)?0:1;
+    case 'xor': return inputs.reduce((a,b)=>a^b,0);
+    case 'xnor':return evaluateGate('xor',inputs)?0:1;
+    default: return inputs[0]||0;
+  }
 }
-function getDestNameWithPin(conn){
-  const dstNode = nodes.find(n=>n.inputs.includes(conn.to));
-  if(!dstNode) return '??';
-  const pinIndex = 1 + dstNode.inputs.indexOf(conn.to);
-  if(dstNode.type==='input'||dstNode.type==='output'||dstNode.type==='M') return `${dstNode.name}/${pinIndex}`;
-  return `${dstNode.code || 'B???'}/${pinIndex}`;
+
+function updateTimerReadout(node, seconds){
+  if(!node.readout) return;
+  node.readout.textContent = `t=${(seconds).toFixed(1)}s`;
 }
 
-/* ===== Hubs (juntas) de salida ===== */
-function ensureHub(pinEl){
-  let hub = outputHubs.get(pinEl);
-  if(hub) return hub;
+function scanLogic(){
+  const now=performance.now();
 
-  const p = terminalEdge(pinEl);
-  const x = p.x + 18, y = p.y;
-  const dot = document.createElementNS("http://www.w3.org/2000/svg","circle");
-  dot.setAttribute('cx', x); dot.setAttribute('cy', y); dot.setAttribute('r', 6);
-  dot.setAttribute('class','hub-dot');
-  const hit = document.createElementNS("http://www.w3.org/2000/svg","circle");
-  hit.setAttribute('cx', x); hit.setAttribute('cy', y); hit.setAttribute('r', 18);
-  hit.setAttribute('class','hub-hit');
+  // leer entradas
+  nodes.forEach(n=>{ if(n.type==='input') n.value = n.el.classList.contains('active')?1:0; n.invalid=false; });
 
-  const stem = document.createElementNS("http://www.w3.org/2000/svg","path");
-  stem.setAttribute('class','wire-path');
+  // calcular nextValue
+  nodes.forEach(node=>{
+    if(node.type==='input'){ node.nextValue=node.value; return; }
 
-  wiresSVG.appendChild(stem);
-  wiresSVG.appendChild(hit);
-  wiresSVG.appendChild(dot);
+    const inVals=connections.filter(c=>node.inputs.includes(c.to)).map(c=>{
+      const s=nodes.find(n=>n.output===c.from); return s? s.value:0;
+    });
+    const A=inVals[0]||0;
 
-  const hubObj = { x, y, dot, hit, stemPath:stem, pin:pinEl, branches:new Set() };
-  outputHubs.set(pinEl, hubObj);
+    if(node.type==='ton'){
+      // TON: sube con retardo, baja inmediatamente
+      let out=node.value;
+      if(A===1){
+        if(node.prevIn===0){ node.timerStart=now; }
+        const elapsed=(now-(node.timerStart||now));
+        if(elapsed>=node.delayMs) out=1;
+        updateTimerReadout(node, Math.max(0,(node.delayMs - elapsed))/1000);
+      }else{
+        out=0; node.timerStart=null; updateTimerReadout(node, node.delayMs/1000);
+      }
+      node.prevIn=A; node.nextValue=out;
+    }else if(node.type==='toff'){
+      // TOFF: enciende inmediatamente con A=1; cuando A pasa a 0, cuenta y luego apaga
+      let out=node.value;
+      if(A===1){
+        out=1;
+        node.seenHigh=true;
+        node.timerStart=null; // mientras entra 1, no corre temporizador
+        updateTimerReadout(node, node.delayMs/1000);
+      }else{
+        if(node.seenHigh){
+          if(node.prevIn===1){ node.timerStart=now; }
+          const elapsed=(now-(node.timerStart||now));
+          out = (elapsed>=node.delayMs)?0:1;
+          updateTimerReadout(node, Math.max(0,(node.delayMs - elapsed))/1000);
+          if(out===0) node.seenHigh=false;
+        }else{
+          out=0; updateTimerReadout(node, node.delayMs/1000);
+        }
+      }
+      node.prevIn=A; node.nextValue=out;
+    }else if(node.type==='output' || node.type==='M'){
+      node.nextValue=A?1:0;
+    }else if(node.type==='sr'){
+      const S=inVals[0]?1:0, R=inVals[1]?1:0;
+      if(S===1 && R===0){ node.q=1; node.nextValue=1; }
+      else if(S===0 && R===1){ node.q=0; node.nextValue=0; }
+      else node.nextValue=node.q||0;
+    }else{
+      node.nextValue=evaluateGate(node.type,inVals)?1:0;
+    }
+  });
 
-  const startDrag = (ev)=>{
-    ev.stopPropagation();
-    const start = (ev.touches? ev.touches[0]:ev);
-    const s = clientToWorkspace(start.clientX, start.clientY);
-    const ox = hubObj.x, oy = hubObj.y;
-    const move = (ev2)=>{
-      const cur = (ev2.touches? ev2.touches[0]:ev2);
-      const wp = clientToWorkspace(cur.clientX, cur.clientY);
-      hubObj.x = ox + (wp.x - s.x);
-      hubObj.y = oy + (wp.y - s.y);
-      renderHub(hubObj);
-    };
-    const end = ()=>{
-      document.removeEventListener('mousemove',move);
-      document.removeEventListener('mouseup',end);
-      document.removeEventListener('touchmove',move);
-      document.removeEventListener('touchend',end);
-    };
-    document.addEventListener('mousemove',move);
-    document.addEventListener('mouseup',end);
-    document.addEventListener('touchmove',move,{passive:false});
-    document.addEventListener('touchend',end,{passive:true});
+  // commit
+  nodes.forEach(n=>{ n.value=n.nextValue; if(n.type==='sr') n.q=n.nextValue; });
+
+  // visual
+  nodes.forEach(n=>{
+    n.el.classList.toggle('has-signal', n.value===1);
+    if(n.type==='input' || n.type==='output' || n.type==='M'){
+      n.el.classList.toggle('active', n.value===1);
+      n.output && n.output.classList.toggle('signal-on', n.value===1);
+    }
+    n.qIndicator && n.qIndicator.classList.toggle('on', n.value===1);
+  });
+
+  // cables + pines
+  connections.forEach(c=>{
+    const v=getSourceNodeValue(c);
+    if(c.path) c.path.classList.toggle('signal', v===1);
+    try{
+      c.from.classList.toggle('signal-on', v===1);
+      c.to.classList.toggle('signal-on',   v===1 && nodes.find(n=>n.inputs.includes(c.to))?.value===1);
+    }catch(e){}
+  });
+  updateConnections();
+}
+
+/* ===== Botones ===== */
+const simulateBtn=document.getElementById('simulate');
+const stopBtn=document.getElementById('stop');
+const deleteBtn=document.getElementById('deleteBtn');
+const saveBtn=document.getElementById('saveBtn');
+const importBtn=document.getElementById('importBtn');
+const fileInput=document.getElementById('fileInput');
+
+simulateBtn.addEventListener('click', ()=>{
+  if(simulation) return;
+  clearSelection(); simulation=true; simulateBtn.classList.add('sim-on');
+  scanLogic(); simTimer=setInterval(scanLogic,SCAN_MS);
+});
+stopBtn.addEventListener('click', ()=>{
+  if(simTimer){ clearInterval(simTimer); simTimer=null; }
+  simulation=false; simulateBtn.classList.remove('sim-on');
+  nodes.forEach(n=>{
+    n.value=0; n.el.classList.remove('has-signal','active');
+    n.qIndicator && n.qIndicator.classList.remove('on');
+    n.output && n.output.classList.remove('signal-on');
+    n.inputs?.forEach(inp=>inp.classList.remove('signal-on'));
+    if(n.type==='ton' || n.type==='toff'){ n.timerStart=null; n.prevIn=0; if(n.type==='toff') n.seenHigh=false; updateTimerReadout(n, (n.delayMs||1000)/1000); }
+  });
+  connections.forEach(c=>{ c.path && c.path.classList.remove('signal'); });
+  updateConnections();
+});
+
+deleteBtn.addEventListener('click', ()=>{
+  if(simulation) return;
+  if(isTimerOpen()) return; // no borrar mientras se edita tiempo
+  if(selectedNode){ removeNode(selectedNode); return; }
+  if(selectedConn){ removeConnection(selectedConn); updateConnections(); return; }
+});
+
+/* ===== Guardar / Importar ===== */
+saveBtn.addEventListener('click', ()=>{
+  const name = prompt('Nombre del archivo (sin extensión):','diagrama');
+  if(name===null) return;
+  const data = serializeProject();
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`${name}.simupasir.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+});
+
+importBtn.addEventListener('click', ()=> fileInput.click());
+fileInput.addEventListener('change', async (e)=>{
+  const f=e.target.files?.[0]; if(!f) return;
+  try{
+    const text=await f.text();
+    const data=JSON.parse(text);
+    loadProject(data);
+  }catch(err){ alert('Archivo inválido'); console.error(err); }
+  fileInput.value='';
+});
+
+/* ===== Serialización sencilla ===== */
+function nodeIndexByOutputEl(el){ return nodes.findIndex(n=>n.output===el); }
+function nodeIndexByInputEl(el){
+  for(let i=0;i<nodes.length;i++){ const idx=nodes[i].inputs.indexOf(el); if(idx>=0) return {node:i,pin:idx}; }
+  return {node:-1,pin:-1};
+}
+
+function serializeProject(){
+  const nlist = nodes.map(n=>({
+    type:n.type, name:n.name, code:n.code,
+    x:parseFloat(n.el.style.left)||0, y:parseFloat(n.el.style.top)||0,
+    delayMs:(n.type==='ton'||n.type==='toff')? (n.delayMs||1000) : undefined
+  }));
+  const clist = connections.map(c=>{
+    const from=nodeIndexByOutputEl(c.from);
+    const {node:toNode,pin:toPin}=nodeIndexByInputEl(c.to);
+    return {from, to:toNode, toPin, bends:c.bends||[]};
+  });
+  return { nlist, clist,
+    counters:{inputCount,outputCount,memoryCount,blockCodeCount}
   };
-  dot.addEventListener('mousedown',startDrag);
-  dot.addEventListener('touchstart',startDrag,{passive:false});
-  hit.addEventListener('mousedown',startDrag);
-  hit.addEventListener('touchstart',startDrag,{passive:false});
-
-  renderHub(hubObj);
-  return hubObj;
-}
-function renderHub(hub){
-  hub.dot.setAttribute('cx', hub.x); hub.dot.setAttribute('cy', hub.y);
-  hub.hit.setAttribute('cx', hub.x); hub.hit.setAttribute('cy', hub.y);
-
-  const e = terminalEdge(hub.pin);
-  const d = `M${e.x},${e.y} L${hub.x-10},${e.y} L${hub.x-10},${hub.y} L${hub.x},${hub.y}`;
-  hub.stemPath.setAttribute('d', d);
-
-  for (const br of hub.branches) renderBranch(br);
 }
 
-/* ===== Estructuras de rama/etiqueta ===== */
-function createTagEl(text, isSource){
-  const tag = document.createElement('div');
-  tag.className = 'conn-tag' + (isSource ? ' conn-tag-src' : '');
-  tag.textContent = text;
-  workspace.appendChild(tag);
-  return tag;
+function loadProject(data){
+  // limpiar
+  [...nodes].forEach(removeNode);
+  nodes=[]; connections=[];
+
+  inputCount=data.counters?.inputCount||0;
+  outputCount=data.counters?.outputCount||0;
+  memoryCount=data.counters?.memoryCount||0;
+  blockCodeCount=data.counters?.blockCodeCount||0;
+
+  // nodos
+  const created=[];
+  (data.nlist||[]).forEach(nd=>{
+    const n=createNode(nd.type, nd.x||100, nd.y||100);
+    // re-asignar name/code y delay
+    n.name=nd.name||n.name;
+    if(n.code && nd.code) {
+      // actualizar badge visual
+      const b=n.el.querySelector('.badge'); if(b) b.textContent=nd.code;
+      n.code=nd.code;
+    }
+    if((n.type==='ton'||n.type==='toff') && typeof nd.delayMs==='number'){
+      n.delayMs=nd.delayMs; updateTimerReadout(n, nd.delayMs/1000);
+    }
+    created.push(n);
+  });
+
+  // conexiones
+  (data.clist||[]).forEach(c=>{
+    const src=created[c.from]; const dst=created[c.to];
+    if(!src || !dst) return;
+    const pinEl=dst.inputs[c.toPin] || dst.inputs[0];
+    createConnection(src.output, pinEl);
+  });
+
+  updateConnections();
 }
 
-function attachDragToTag(branch){
-  const tag = branch.tagEl;
-  let dragging=false, sx=0, sy=0, ox=0, oy=0;
-  const start=(ev)=>{
-    ev.stopPropagation();
-    dragging=true;
-    const pt=(ev.touches? ev.touches[0]:ev);
-    const wp=clientToWorkspace(pt.clientX, pt.clientY);
-    sx=wp.x; sy=wp.y; ox=branch.tx; oy=branch.ty;
-    document.addEventListener('mousemove',move);
-    document.addEventListener('mouseup',end);
-    document.addEventListener('touchmove',move,{passive:false});
-    document.addEventListener('touchend',end,{passive:true});
-  };
-  const move=(ev)=>{
-    if(!dragging) return;
-    const pt=(ev.touches? ev.touches[0]:ev);
-    const wp=clientToWorkspace(pt.clientX, pt.clientY);
-    branch.tx = ox + (wp.x - sx);
-    branch.ty = oy + (wp.y - sy);
-    renderBranch(branch);
-    ev.preventDefault?.();
-  };
-  const end=()=>{
-    dragging=false;
-    document.removeEventListener('mousemove',move);
-    document.removeEventListener('mouseup',end);
-    document.removeEventListener('touchmove',move);
-    document.removeEventListener('touchend',end);
-  };
-  tag.addEventListener('mousedown', start);
-  tag.addEventListener('touchstart', start, {passive:false});
-  tag.addEventListener('click', (e)=>{ e.stopPropagation(); selectTag(tag); });
+/* ===== Borrar nodo / conexión ===== */
+function removeNode(node){
+  if(simulation) return;
+  // quitar conexiones asociadas
+  const toRemove=connections.filter(c=> c.from===node.output || node.inputs.includes(c.to));
+  toRemove.forEach(removeConnection);
+  node.el.remove();
+  nodes = nodes.filter(n=>n!==node);
+  clearSelection(); updateConnections();
+}
+function removeConnection(conn){
+  conn.path && conn.path.remove(); conn.hit && conn.hit.remove();
+  const i=connections.indexOf(conn); if(i>=0) connections.splice(i,1);
+  if(selectedConn===conn) selectedConn=null;
 }
 
-/* Crea una rama desde HUB o desde PIN (entrada) hacia la etiqueta */
-function createBranch({fromHub, hub, fromPin, pinEl, text}){
-  const path = document.createElementNS("http://www.w3.org/200/svg","path"); // typo fix below
+/* ===== Timer Modal ===== */
+const timerModal=document.getElementById('timerModal');
+const timerTitle=document.getElementById('timerTitle');
+const timerSecInput=document.getElementById('timerSec');
+const btnTimerCancel=document.getElementById('btnTimerCancel');
+const btnTimerSave=document.getElementById('btnTimerSave');
+let timerNode=null;
+function isTimerOpen(){ return timerModal.style.display==='block'; }
+function openTimerModal(node){
+  timerNode=node;
+  const kind=node.type.toUpperCase();
+  const code=node.code || node.name;
+  timerTitle.textContent=`Configurar ${kind} (${code})`;
+  timerSecInput.value=(node.delayMs ?? 1000)/1000;
+  timerModal.style.display='block';
+  deleteBtn.disabled=true;
+  timerSecInput.focus();
 }
+function closeTimerModal(){
+  timerModal.style.display='none';
+  timerNode=null;
+  deleteBtn.disabled=false;
+}
+btnTimerCancel.addEventListener('click', closeTimerModal);
+btnTimerSave.addEventListener('click', ()=>{
+  if(!timerNode) return;
+  let sec=parseFloat(timerSecInput.value);
+  if(isNaN(sec)||sec<0) sec=0;
+  timerNode.delayMs=Math.round(sec*1000);
+  timerNode.timerStart=null; timerNode.prevIn=0;
+  if(timerNode.type==='toff') timerNode.seenHigh=false;
+  updateTimerReadout(timerNode, sec);
+  closeTimerModal();
+});
+timerModal.addEventListener('click',(e)=>{ if(e.target===timerModal) closeTimerModal(); });
+
+/* Bloqueo de Delete/Backspace mientras editas el tiempo */
+document.addEventListener('keydown',(e)=>{
+  if(isTimerOpen()){
+    if(e.key==='Delete' || e.key==='Backspace'){
+      // Permite borrar dentro del input, no borrar bloque
+      if(document.activeElement===timerSecInput) return;
+      e.preventDefault();
+    }
+  }else{
+    if(e.key==='Delete' || e.key==='Backspace'){
+      if(simulation) return;
+      deleteBtn.click();
+    }
+    if(e.key==='Escape'){ clearSelection(); }
+  }
+});
+
+/* Init */
+updateTransform();
 </script>
 </body>
 </html>
