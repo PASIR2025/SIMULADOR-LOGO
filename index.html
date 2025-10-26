@@ -32,14 +32,28 @@
   html,body{height:100%}
   body{margin:0;font-family:Inter,Arial,Helvetica,sans-serif;display:flex;height:100vh;overflow:hidden;background:#fff}
 
-  /* Sidebar */
-  #sidebar{width:150px;background:var(--sidebar);padding:10px;border-right:3px solid #bdb089;display:flex;flex-direction:column;gap:8px;box-sizing:border-box;z-index:60}
+  /* Topbar */
+  #topbar{
+    position:fixed; inset:0 0 auto 0; height:46px; background:#ffffffcc; backdrop-filter:saturate(1.2) blur(6px);
+    display:flex; align-items:center; gap:8px; padding:6px 8px; z-index:250; border-bottom:1px solid #e7e7e7;
+  }
+  #burger{font-size:20px; font-weight:900; padding:6px 10px; border:1px solid #777; border-radius:8px; background:#fff; cursor:pointer}
+  #topbar button{padding:6px 10px;border-radius:8px;border:1px solid #777;background:#fff;font-weight:700;cursor:pointer}
+  #spacer{flex:1}
+
+  /* Sidebar (biblioteca) */
+  #sidebar{
+    position:fixed; top:46px; bottom:0; left:0; width:180px; background:var(--sidebar); padding:10px;
+    border-right:3px solid #bdb089; display:flex; flex-direction:column; gap:8px; box-sizing:border-box; z-index:200;
+    transform:translateX(-100%); transition:transform .18s ease;
+  }
+  #sidebar.open{transform:translateX(0)}
   #sidebar > div[style*="font-weight"]{font-size:13px}
   .component{background:var(--node);border:2px solid #7a7a7a;border-radius:8px;padding:6px;text-align:center;cursor:grab;user-select:none;font-weight:700;font-size:20px;line-height:1.05;box-shadow:0 2px 0 rgba(0,0,0,.06)}
   .component.selected{outline:3px solid #0078d7;outline-offset:2px}
 
   /* Canvas */
-  #canvas{flex:1;background:#fff;position:relative;overflow:hidden;touch-action:none}
+  #canvas{flex:1;background:#fff;position:absolute; inset:46px 0 0 0; overflow:hidden; touch-action:none}
   #workspace{position:absolute;top:0;left:0;width:var(--workspace-size);height:var(--workspace-size);transform-origin:0 0;background:transparent}
 
   /* Bloques */
@@ -87,11 +101,7 @@
   .conn-tag.selected{outline:3px solid #0078d7;outline-offset:2px}
   .conn-tag.signal{background:var(--neon);color:#000;border-color:var(--neon);box-shadow:0 0 12px rgba(0,255,102,.45)}
 
-  /* Controles */
-  #controls{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:var(--sidebar);padding:8px 12px;border-radius:10px;border:2px solid #bdb089;display:flex;gap:10px;align-items:center;z-index:200}
-  #controls button{padding:8px 10px;border-radius:8px;border:1px solid #777;background:#fff;font-weight:700;cursor:pointer}
-  #zoomIn,#zoomOut{padding:6px 10px}
-
+  /* Indicador Q */
   .q-indicator{width:18px;height:18px;border-radius:50%;background:#444;margin-top:8px;pointer-events:none;border:2px solid #222}
   .q-indicator.on{background:var(--neon);box-shadow:0 0 8px rgba(0,255,102,.45)}
 
@@ -123,18 +133,31 @@
   #btnTimerSave{background:#003366;color:#fff;border-color:#003366}
 
   @supports(padding:max(0px)){
-    #controls{bottom:calc(12px + env(safe-area-inset-bottom))}
     #installBtn{bottom:calc(80px + env(safe-area-inset-bottom))}
     #fabPalette{bottom:calc(12px + env(safe-area-inset-bottom))}
   }
   @media (max-width:720px){
-    #sidebar{display:none}
     #fabPalette{display:block}
   }
 </style>
 </head>
 <body>
 
+  <!-- Topbar -->
+  <div id="topbar">
+    <button id="burger">☰</button>
+    <button id="btnSave">Guardar</button>
+    <button id="btnLoad">Importar</button>
+    <input id="loadInput" type="file" accept="application/json" style="display:none" />
+    <div id="spacer"></div>
+    <button id="simulate">Simular</button>
+    <button id="stop">Detener</button>
+    <button id="deleteBtn">Eliminar</button>
+    <button id="zoomOut" title="Alejar">−</button>
+    <button id="zoomIn" title="Acercar">＋</button>
+  </div>
+
+  <!-- Biblioteca (oculta por defecto, se abre con ☰) -->
   <div id="sidebar">
     <div style="font-weight:900">SIMUPASIR — Componentes</div>
     <div class="component" draggable="true" data-type="input">Entrada (I)</div>
@@ -151,25 +174,16 @@
     <div style="height:4px"></div>
     <div class="component" draggable="true" data-type="sr">SR (Set/Reset)</div>
     <div style="height:4px"></div>
-    <!-- NUEVOS -->
     <div class="component" draggable="true" data-type="ton">TON</div>
     <div class="component" draggable="true" data-type="toff">TOFF</div>
-
     <div style="flex:1"></div>
-    <div style="font-size:11px;color:#333">Conecta: salida → entrada.</div>
+    <div style="font-size:11px;color:#333">Arrastra un bloque al área.</div>
   </div>
 
+  <!-- Lienzo -->
   <div id="canvas">
     <div id="workspace">
       <svg id="wires" xmlns="http://www.w3.org/2000/svg" width="5000" height="5000" viewBox="0 0 5000 5000" preserveAspectRatio="none"></svg>
-    </div>
-
-    <div id="controls">
-      <button id="simulate">Simular</button>
-      <button id="stop">Detener</button>
-      <button id="deleteBtn">Eliminar</button>
-      <button id="zoomOut" title="Alejar">−</button>
-      <button id="zoomIn" title="Acercar">＋</button>
     </div>
   </div>
 
@@ -177,7 +191,7 @@
   <button id="installBtn">Instalar SIMUPASIR</button>
   <button id="fabPalette">🧩 Bloques</button>
 
-  <!-- Modal paleta -->
+  <!-- Paleta móvil -->
   <div id="paletteModal" aria-hidden="true">
     <div id="paletteSheet">
       <div style="font-weight:900;margin-bottom:10px;color:#003366">Elige un bloque</div>
@@ -198,8 +212,8 @@
   <div id="timerModal">
     <div id="timerCard">
       <h3 id="timerTitle">Configurar temporizador</h3>
-      <label for="timerMs">Tiempo (ms)</label>
-      <input id="timerMs" type="number" min="0" step="10" value="1000" />
+      <label for="timerSec">Tiempo (s)</label>
+      <input id="timerSec" type="number" min="0" step="0.1" value="1" />
       <div id="timerActions">
         <button id="btnTimerCancel">Cancelar</button>
         <button id="btnTimerSave">Guardar</button>
@@ -216,10 +230,17 @@ installBtn.addEventListener('click', async()=>{ if(!deferredPrompt) return; defe
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator.serviceWorker.register('./service-worker.js').catch(console.error); }); }
 
 /* ===== SIMUPASIR ===== */
+const burger = document.getElementById('burger');
+const sidebar = document.getElementById('sidebar');
+burger.addEventListener('click', ()=>{ sidebar.classList.toggle('open'); });
+
 const canvas = document.getElementById("canvas");
 const workspace = document.getElementById("workspace");
 const wiresSVG = document.getElementById("wires");
 const components = document.querySelectorAll(".component");
+const btnSave = document.getElementById('btnSave');
+const btnLoad = document.getElementById('btnLoad');
+const loadInput = document.getElementById('loadInput');
 
 let nodes=[], connections=[], pendingOutput=null, pendingGhost=null;
 let simulation=false;
@@ -238,10 +259,10 @@ let selectedPinEl=null;
 /* Hubs (juntas) por pin de salida */
 const outputHubs = new WeakMap(); // pinEl -> { x,y, dot, hit, stemPath, branches:Set }
 
-/* ===== Timer config modal ===== */
+/* ==== Temporizador Modal (segundos) ==== */
 const timerModal = document.getElementById('timerModal');
 const timerTitle = document.getElementById('timerTitle');
-const timerMsInput = document.getElementById('timerMs');
+const timerSecInput = document.getElementById('timerSec');
 const btnTimerCancel = document.getElementById('btnTimerCancel');
 const btnTimerSave = document.getElementById('btnTimerSave');
 let timerNode=null;
@@ -251,7 +272,8 @@ function openTimerModal(node){
   const kind = node.type.toUpperCase();
   const code = node.code || node.name;
   timerTitle.textContent = `Configurar ${kind} (${code})`;
-  timerMsInput.value = node.delayMs ?? 1000;
+  const sec = Math.max(0, Math.round(((node.delayMs ?? 1000)/1000)*10)/10);
+  timerSecInput.value = sec;
   timerModal.style.display='block';
 }
 function closeTimerModal(){
@@ -261,9 +283,9 @@ function closeTimerModal(){
 btnTimerCancel.addEventListener('click', closeTimerModal);
 btnTimerSave.addEventListener('click', ()=>{
   if(!timerNode) return;
-  let ms = parseInt(timerMsInput.value,10);
-  if(isNaN(ms)||ms<0) ms=0;
-  timerNode.delayMs = ms;
+  let sec = parseFloat(timerSecInput.value);
+  if(isNaN(sec)||sec<0) sec=0;
+  timerNode.delayMs = Math.round(sec*1000);
   // reset de estado interno del temporizador
   timerNode.timerStart=null;
   timerNode.seenHigh=false;   // para TOFF
@@ -290,8 +312,6 @@ function logoLabelForType(type){
     default:     return (type||'').toUpperCase();
   }
 }
-function nowMs(){ return performance.now ? performance.now() : Date.now(); }
-
 function clientToWorkspace(clientX, clientY){
   const rect = canvas.getBoundingClientRect();
   return { x:(clientX-rect.left-panX)/scale, y:(clientY-rect.top-panY)/scale };
@@ -437,6 +457,7 @@ function clearSelection(){
 }
 
 /* Crear bloque */
+let nextNodeId=1;
 function createNode(type,x,y){
   const div=document.createElement('div'); div.className='node'; div.style.left=x+'px'; div.style.top=y+'px';
 
@@ -483,7 +504,7 @@ function createNode(type,x,y){
 
   workspace.appendChild(div);
 
-  const node={ el:div, type, name:display, code:blockCode, inputs, output, value:0, nextValue:0, qIndicator:qind, invalid:false };
+  const node={ id:nextNodeId++, el:div, type, name:display, code:blockCode, inputs, output, value:0, nextValue:0, qIndicator:qind, invalid:false };
 
   /* Estado extra para temporizadores */
   if(type==='ton' || type==='toff'){
@@ -492,10 +513,10 @@ function createNode(type,x,y){
     node.prevIn = 0;         // último valor de entrada
   }
   if(type==='toff'){
-    node.seenHigh = false;   // aún no fue energizado (clave para no contar al inicio)
+    node.seenHigh = false;   // aún no fue energizado
   }
 
-  // Doble clic/tap para configurar temporizador
+  // Doble clic/tap para configurar temporizador (no borra el bloque)
   if(type==='ton' || type==='toff'){
     div.addEventListener('dblclick', (e)=>{ e.stopPropagation(); openTimerModal(node); });
     let lastTap=0;
@@ -523,7 +544,7 @@ function createNode(type,x,y){
   updateConnections();
 }
 
-/* Mover bloque */
+/* Mover bloque (cuando está seleccionado) */
 function dragMove(el,node){
   let sx,sy,ix,iy,dragging=false;
   el.addEventListener('mousedown', e=>{
@@ -585,7 +606,7 @@ function trackGhost(e){ if(!pendingGhost||!pendingOutput) return; const p=client
 function trackGhostTouch(e){ if(!pendingGhost||!pendingOutput) return; const t=e.touches[0]; const p=clientToWorkspace(t.clientX,t.clientY); const s=terminalEdge(pendingOutput); updateGhostPath(pendingGhost,s.x,s.y,p.x,p.y); e.preventDefault(); }
 function updateGhostPath(path,sx,sy,ex,ey){ const midX=(sx+ex)/2; path.setAttribute('d',`M${sx},${sy} L${midX},${sy} L${midX},${ey} L${ex},${ey}`); }
 
-/* ===== Helpers etiquetas ===== */
+/* ===== Etiquetas & hubs ===== */
 function getSourceName(conn){
   const srcNode = nodes.find(n=>n.output===conn.from);
   if(!srcNode) return '??';
@@ -599,12 +620,9 @@ function getDestNameWithPin(conn){
   if(dstNode.type==='input'||dstNode.type==='output'||dstNode.type==='M') return `${dstNode.name}/${pinIndex}`;
   return `${dstNode.code || 'B???'}/${pinIndex}`;
 }
-
-/* ===== Hubs (juntas) de salida ===== */
 function ensureHub(pinEl){
   let hub = outputHubs.get(pinEl);
   if(hub) return hub;
-
   const p = terminalEdge(pinEl);
   const x = p.x + 18, y = p.y;
   const dot = document.createElementNS("http://www.w3.org/2000/svg","circle");
@@ -613,14 +631,9 @@ function ensureHub(pinEl){
   const hit = document.createElementNS("http://www.w3.org/2000/svg","circle");
   hit.setAttribute('cx', x); hit.setAttribute('cy', y); hit.setAttribute('r', 18);
   hit.setAttribute('class','hub-hit');
-
   const stem = document.createElementNS("http://www.w3.org/2000/svg","path");
-  stem.setAttribute('class','wire-path'); // troncal corto desde pin → hub
-
-  wiresSVG.appendChild(stem);
-  wiresSVG.appendChild(hit);
-  wiresSVG.appendChild(dot);
-
+  stem.setAttribute('class','wire-path');
+  wiresSVG.appendChild(stem); wiresSVG.appendChild(hit); wiresSVG.appendChild(dot);
   const hubObj = { x, y, dot, hit, stemPath:stem, pin:pinEl, branches:new Set() };
   outputHubs.set(pinEl, hubObj);
 
@@ -658,15 +671,11 @@ function ensureHub(pinEl){
 function renderHub(hub){
   hub.dot.setAttribute('cx', hub.x); hub.dot.setAttribute('cy', hub.y);
   hub.hit.setAttribute('cx', hub.x); hub.hit.setAttribute('cy', hub.y);
-
   const e = terminalEdge(hub.pin);
   const d = `M${e.x},${e.y} L${hub.x-10},${e.y} L${hub.x-10},${hub.y} L${hub.x},${hub.y}`;
   hub.stemPath.setAttribute('d', d);
-
   for (const br of hub.branches) renderBranch(br);
 }
-
-/* ===== Estructuras de rama/etiqueta ===== */
 function createTagEl(text, isSource){
   const tag = document.createElement('div');
   tag.className = 'conn-tag' + (isSource ? ' conn-tag-src' : '');
@@ -674,7 +683,6 @@ function createTagEl(text, isSource){
   workspace.appendChild(tag);
   return tag;
 }
-
 function attachDragToTag(branch){
   const tag = branch.tagEl;
   let dragging=false, sx=0, sy=0, ox=0, oy=0;
@@ -709,31 +717,17 @@ function attachDragToTag(branch){
   tag.addEventListener('touchstart', start, {passive:false});
   tag.addEventListener('click', (e)=>{ e.stopPropagation(); selectTag(tag); });
 }
-
-/* Crea una rama desde HUB o desde PIN (entrada) hacia la etiqueta */
 function createBranch({fromHub, hub, fromPin, pinEl, text}){
   const path = document.createElementNS("http://www.w3.org/2000/svg","path");
   path.setAttribute('class','wire-path');
   const hit  = document.createElementNS("http://www.w3.org/2000/svg","path");
   hit.setAttribute('class','wire-hit');
-
-  wiresSVG.appendChild(hit);
-  wiresSVG.appendChild(path);
-
+  wiresSVG.appendChild(hit); wiresSVG.appendChild(path);
   const tag = createTagEl(text, !!fromHub);
-
   let start;
   if(fromHub) start = {x:hub.x, y:hub.y};
   else { const e=terminalEdge(pinEl); start = {x:e.x-40, y:e.y}; }
-
-  const branch = {
-    fromHub, hub, fromPin, pinEl,
-    path, hit, tagEl:tag,
-    bends:[],
-    tx: start.x + (fromHub? 60 : -60),
-    ty: start.y - 20
-  };
-
+  const branch = { fromHub, hub, fromPin, pinEl, path, hit, tagEl:tag, bends:[], tx: start.x + (fromHub? 60 : -60), ty: start.y - 20 };
   const onLP = (ev)=>{
     ev.stopPropagation();
     let cancelled=false;
@@ -752,24 +746,17 @@ function createBranch({fromHub, hub, fromPin, pinEl, text}){
   path.addEventListener('touchstart', onLP, {passive:false});
   hit .addEventListener('mousedown', onLP);
   hit .addEventListener('touchstart', onLP, {passive:false});
-
   attachDragToTag(branch);
   renderBranch(branch);
-
   const onSel=(e)=>{ e.stopPropagation(); selectedBranch=branch; selectTag(tag); };
   hit.addEventListener('click', onSel);
   hit.addEventListener('touchstart', onSel, {passive:true});
-
   return branch;
 }
-
-/* Render de una rama */
 function renderBranch(branch){
   const sx = branch.fromHub ? branch.hub.x : terminalEdge(branch.pinEl).x;
   const sy = branch.fromHub ? branch.hub.y : terminalEdge(branch.pinEl).y;
-
   const ex = branch.tx, ey = branch.ty;
-
   let d='';
   if(branch.bends.length===0){
     const midX=(sx+ex)/2; d=`M${sx},${sy} L${midX},${sy} L${midX},${ey} L${ex},${ey}`;
@@ -779,28 +766,21 @@ function renderBranch(branch){
   }
   branch.path.setAttribute('d', d);
   branch.hit.setAttribute('d', d);
-
   branch.tagEl.style.left = ex + 'px';
   branch.tagEl.style.top  = ey + 'px';
 }
-
-/* Convertir un cable a etiquetas + hub/ramas y cable en entrada */
 function convertWireToLabel(conn){
   conn.path && conn.path.remove(); conn.path=null;
   conn.hit && conn.hit.remove(); conn.hit=null;
   (conn.handles||[]).forEach(h=>h.remove()); conn.handles=[];
-
   const srcName = getDestNameWithPin(conn);
   const inName  = getSourceName(conn);
-
   const hub = ensureHub(conn.from);
   const srcBranch = createBranch({fromHub:true, hub, text:srcName});
   hub.branches.add(srcBranch);
   conn.srcBranch = srcBranch;
-
   const dstBranch = createBranch({fromHub:false, pinEl:conn.to, text:inName});
   conn.dstBranch = dstBranch;
-
   conn.mode = 'label';
   renderConnection(conn);
 }
@@ -809,17 +789,15 @@ function convertWireToLabel(conn){
 function createConnection(fromTerm,toTerm){
   if(simulation) return;
   if(connections.find(c => c.from===fromTerm && c.to===toTerm)) return;
-  const conn={ from:fromTerm, to:toTerm, path:null, hit:null, bends:[], handles:[], selected:false, mode:'wire',
-               srcBranch:null, dstBranch:null };
+  const conn={ from:fromTerm, to:toTerm, path:null, hit:null, bends:[], handles:[], selected:false, mode:'wire', srcBranch:null, dstBranch:null };
   connections.push(conn); renderConnection(conn);
 }
 
-/* Menú contextual en cables */
+/* Menú contextual cables */
 const wireMenu = document.getElementById('wireMenu');
 const menuAddNode = document.getElementById('menuAddNode');
 const menuMakeLabel = document.getElementById('menuMakeLabel');
 let menuContext = { conn:null, clientX:0, clientY:0 };
-
 function showWireMenu(conn, clientX, clientY){
   menuContext = { conn, clientX, clientY };
   wireMenu.style.display='block';
@@ -847,13 +825,12 @@ menuMakeLabel.addEventListener('click', ()=>{
 });
 document.addEventListener('click', (e)=>{ if(e.target!==wireMenu && !wireMenu.contains(e.target)) hideWireMenu(); });
 
-/* ===== Señal a pines/etiquetas/ramas/hub ===== */
+/* ===== Señal visual ===== */
 function applySignalStyles(conn, val){
   try{
     conn.from.classList.toggle('signal-on', val===1);
     conn.to.classList.toggle('signal-on',   val===1);
   }catch(e){}
-
   if(conn.mode==='label'){
     if(conn.srcBranch){
       conn.srcBranch.path.classList.toggle('signal', val===1);
@@ -871,7 +848,6 @@ function applySignalStyles(conn, val){
   }else{
     if(conn.path) conn.path.classList.toggle('signal', val===1);
   }
-
   const srcNode=nodes.find(n=>n.output===conn.from);
   if(srcNode){
     srcNode.qIndicator && srcNode.qIndicator.classList.toggle('on', val===1);
@@ -894,10 +870,8 @@ function renderConnection(conn){
     applySignalStyles(conn, val);
     return;
   }
-
   conn.path?.remove(); conn.hit?.remove();
   (conn.handles||[]).forEach(h=>h.remove()); conn.handles=[];
-
   const s=terminalEdge(conn.from), e=terminalEdge(conn.to);
   let d='';
   if(conn.bends.length===0){
@@ -906,21 +880,16 @@ function renderConnection(conn){
     const pts=[{x:s.x,y:s.y}].concat(conn.bends).concat([{x:e.x,y:e.y}]);
     d=`M${pts[0].x},${pts[0].y} `; for(let i=1;i<pts.length;i++){ const prev=pts[i-1], next=pts[i]; d+=`L${next.x},${prev.y} L${next.x},${next.y} `; }
   }
-
   const hit=document.createElementNS("http://www.w3.org/2000/svg","path");
   hit.setAttribute("d",d); hit.setAttribute("class","wire-hit");
-
   const path=document.createElementNS("http://www.w3.org/2000/svg","path");
   path.setAttribute("d",d); path.setAttribute("class","wire-path");
   if(conn.selected) path.classList.add('selected');
-
   const val=getSourceNodeValue(conn);
-
   const onSelect=(ev)=>{ ev.stopPropagation(); if(simulation) return; selectConnection(conn); };
   hit.addEventListener('click',onSelect);
   hit.addEventListener('touchstart',onSelect,{passive:true});
   hit.addEventListener('contextmenu',(ev)=>{ ev.preventDefault(); if(simulation) return; showWireMenu(conn, ev.clientX, ev.clientY); });
-
   function onPathDown(ev){
     if(simulation) return;
     if(ev.type==='mousedown' && ev.button!==0) return;
@@ -940,13 +909,9 @@ function renderConnection(conn){
   path.addEventListener('touchstart',onPathDown,{passive:false});
   hit .addEventListener('mousedown',onPathDown);
   hit .addEventListener('touchstart',onPathDown,{passive:false});
-
-  wiresSVG.appendChild(hit);
-  wiresSVG.appendChild(path);
+  wiresSVG.appendChild(hit); wiresSVG.appendChild(path);
   conn.hit=hit; conn.path=path;
-
   applySignalStyles(conn, val);
-
   if(conn.selected && !simulation){
     conn.handles=[];
     conn.bends.forEach((b,idx)=>{
@@ -964,7 +929,7 @@ function renderConnection(conn){
   }
 }
 
-/* Bend dragging para cables normales */
+/* Bend dragging */
 function startDraggingHandle(conn,index){
   if(conn.handles && conn.handles[index]) conn.handles[index].classList.add('dragging');
   draggingBend={conn,index};
@@ -1005,37 +970,27 @@ function updateConnections(){ connections.forEach(c=>renderConnection(c)); }
 /* Eliminar bloque + cables asociados y limpiar hubs */
 function removeNode(node){
   if(simulation) return;
-
   if(selectedPinEl && (selectedPinEl===node.output || node.inputs.includes(selectedPinEl))){
     selectedPinEl.classList.remove('pin-selected'); selectedPinEl=null; pendingOutput=null; removeGhost();
   }
   const toRemove = connections.filter(c=> c.from===node.output || node.inputs.includes(c.to) );
   toRemove.forEach(removeConnection);
-
   if(node.output){
     const hub = outputHubs.get(node.output);
     if(hub){
-      for(const br of hub.branches){
-        br.tagEl.remove(); br.path.remove(); br.hit.remove();
-      }
+      for(const br of hub.branches){ br.tagEl.remove(); br.path.remove(); br.hit.remove(); }
       hub.stemPath.remove(); hub.dot.remove(); hub.hit.remove();
       outputHubs.delete(node.output);
     }
   }
-
   node.el.remove();
   nodes = nodes.filter(n=>n!==node);
-
-  clearSelection();
-  updateConnections();
+  clearSelection(); updateConnections();
 }
-
-/* Eliminar conexión (wire o label) */
 function removeConnection(conn){
   if(!conn) return;
   conn.path && conn.path.remove(); conn.hit && conn.hit.remove();
   (conn.handles||[]).forEach(h=>h.remove()); conn.handles=[];
-
   if(conn.srcBranch){
     const hub = conn.srcBranch.hub;
     if(hub){ hub.branches.delete(conn.srcBranch); }
@@ -1050,7 +1005,6 @@ function removeConnection(conn){
     conn.dstBranch.tagEl.remove(); conn.dstBranch.path.remove(); conn.dstBranch.hit.remove();
     conn.dstBranch=null;
   }
-
   const i=connections.indexOf(conn); if(i>=0) connections.splice(i,1);
   if(selectedConn===conn) selectedConn=null;
   if(selectedTag && (selectedTag===conn.tagSrcEl || conn.tagDstEl===selectedTag)){ selectedTag.classList.remove('selected'); selectedTag=null; }
@@ -1070,22 +1024,18 @@ function evaluateGate(type,inputs){
     default: return inputs[0]||0;
   }
 }
-
 function nowMs(){ return performance.now ? performance.now() : Date.now(); }
 
 function scanLogic(){
   const tnow = nowMs();
-
   // entradas
   nodes.forEach(n=>{
     if(n.type==='input') n.value = n.el.classList.contains('active')?1:0;
     n.invalid=false;
   });
-
   // calcular nextValue
   nodes.forEach(node=>{
     if(node.type==='input'){ node.nextValue=node.value; return; }
-
     const inVals=connections.filter(c=>node.inputs.includes(c.to)).map(c=>{
       const s=nodes.find(n=>n.output===c.from); return s ? s.value : 0;
     });
@@ -1099,7 +1049,6 @@ function scanLogic(){
       else if(S===0 && R===1){ node.q=0; node.nextValue=0; }
       else node.nextValue=node.q||0;
     } else if(node.type==='ton'){
-      // ON-delay: entrada 1 inicia conteo; al cumplirse delay => salida 1; si cae a 0, resetea y salida 0
       const delay = node.delayMs ?? 1000;
       if(in0===1){
         if(node.timerStart==null) node.timerStart = tnow;
@@ -1110,18 +1059,14 @@ function scanLogic(){
       }
       node.prevIn = in0;
     } else if(node.type==='toff'){
-      // OFF-delay (TOFF) con "armado" solo tras primera energización:
-      // - Si entrada=1: salida=1 inmediata, cancela conteo, marca seenHigh=true
-      // - Si entrada=0 y nunca energizado: salida=0, no cuenta
-      // - Si entrada=0 y ya fue energizado: inicia/continúa conteo; salida=1 hasta que vence y pasa a 0
       const delay = node.delayMs ?? 1000;
       if(in0===1){
         node.seenHigh = true;
-        node.timerStart = null;       // cancela conteo off
+        node.timerStart = null;
         node.nextValue = 1;
-      }else{ // in0 == 0
+      }else{
         if(!node.seenHigh){
-          node.nextValue = 0;         // aún no ha sido energizado
+          node.nextValue = 0;
           node.timerStart = null;
         }else{
           if(node.timerStart==null) node.timerStart = tnow;
@@ -1133,10 +1078,8 @@ function scanLogic(){
       node.nextValue=evaluateGate(node.type,inVals)?1:0;
     }
   });
-
   // fijar values
   nodes.forEach(n=>{ n.value=n.nextValue; if(n.type==='sr') n.q=n.nextValue; });
-
   // visual de bloques
   nodes.forEach(n=>{
     n.el.classList.toggle('has-signal', n.value===1);
@@ -1146,29 +1089,24 @@ function scanLogic(){
     }
     n.qIndicator && n.qIndicator.classList.toggle('on', n.value===1);
   });
-
   // actualizar conexiones
   connections.forEach(c=>{
     const v=getSourceNodeValue(c);
     applySignalStyles(c, v);
   });
-
   updateConnections();
 }
 
-/* Botones */
+/* Botones simulación y zoom */
 document.getElementById('simulate').addEventListener('click', ()=>{
   if(simulation) return;
   clearSelection(); simulation=true;
-  // reset internos de temporizadores
   nodes.forEach(n=>{
     if(n.type==='ton' || n.type==='toff'){
       n.timerStart = null;
       n.prevIn = 0;
     }
-    if(n.type==='toff'){
-      n.seenHigh = false; // importante: al iniciar simulación, TOFF no cuenta hasta recibir 1
-    }
+    if(n.type==='toff'){ n.seenHigh = false; }
   });
   scanLogic(); simTimer=setInterval(scanLogic,SCAN_MS);
 });
@@ -1183,67 +1121,19 @@ document.getElementById('stop').addEventListener('click', ()=>{
     n.invalid=false;
     n.output && n.output.classList.remove('signal-on');
     n.inputs?.forEach(inp=>inp.classList.remove('signal-on'));
-    if(n.type==='ton' || n.type==='toff'){
-      n.timerStart=null; n.prevIn=0;
-    }
-    if(n.type==='toff'){
-      n.seenHigh=false;
-    }
+    if(n.type==='ton' || n.type==='toff'){ n.timerStart=null; n.prevIn=0; }
+    if(n.type==='toff'){ n.seenHigh=false; }
   });
   connections.forEach(c=>applySignalStyles(c, 0));
   updateConnections();
 });
-document.getElementById('deleteBtn').addEventListener('click', ()=>{
-  if(simulation) return;
-  if(selectedNode){ removeNode(selectedNode); return; }
-  if(selectedConn){ removeConnection(selectedConn); updateConnections(); return; }
-  if(selectedTag && selectedBranch){
-    const conn = connections.find(c=> c.srcBranch===selectedBranch || c.dstBranch===selectedBranch );
-    if(conn){
-      if(conn.srcBranch===selectedBranch){
-        const hub = selectedBranch.hub;
-        hub && hub.branches.delete(selectedBranch);
-        selectedBranch.tagEl.remove(); selectedBranch.path.remove(); selectedBranch.hit.remove();
-        conn.srcBranch=null;
-        if(hub && hub.branches.size===0){
-          hub.stemPath.remove(); hub.dot.remove(); hub.hit.remove();
-          outputHubs.delete(hub.pin);
-        }
-      }else if(conn.dstBranch===selectedBranch){
-        selectedBranch.tagEl.remove(); selectedBranch.path.remove(); selectedBranch.hit.remove();
-        conn.dstBranch=null;
-      }
-      if(!conn.srcBranch && !conn.dstBranch){
-        const i=connections.indexOf(conn); if(i>=0) connections.splice(i,1);
-      }
-      updateConnections();
-    }
-    selectedBranch=null; selectedTag=null;
-    return;
-  }
-  if(selectedTag){
-    for(const conn of connections){
-      if(conn.srcBranch && conn.srcBranch.tagEl===selectedTag){ selectedBranch=conn.srcBranch; break; }
-      if(conn.dstBranch && conn.dstBranch.tagEl===selectedTag){ selectedBranch=conn.dstBranch; break; }
-    }
-    document.getElementById('deleteBtn').click();
-  }
-});
-
-/* Click en tag para fijar selectedBranch */
-workspace.addEventListener('click', (e)=>{
-  if(e.target.classList && e.target.classList.contains('conn-tag')){
-    for(const conn of connections){
-      if(conn.srcBranch && conn.srcBranch.tagEl===e.target){ selectedBranch=conn.srcBranch; break; }
-      if(conn.dstBranch && conn.dstBranch.tagEl===e.target){ selectedBranch=conn.dstBranch; break; }
-    }
-  }
-});
-
-/* Teclas */
 document.getElementById('zoomIn').addEventListener('click', ()=>setZoom(scale+0.12));
 document.getElementById('zoomOut').addEventListener('click', ()=>setZoom(scale-0.12));
+
+/* Eliminar selección (pero NO cuando estás escribiendo en inputs) */
 document.addEventListener('keydown', (e)=>{
+  const tag = (e.target && e.target.tagName || '').toLowerCase();
+  if(tag==='input' || tag==='textarea' || e.target.isContentEditable) return; // <- protege al editar tiempo
   if(e.key==='Delete' || e.key==='Backspace'){
     if(simulation) return;
     document.getElementById('deleteBtn').click();
@@ -1254,9 +1144,116 @@ document.addEventListener('keydown', (e)=>{
 /* Redibuja en resize */
 window.addEventListener('resize', updateConnections);
 
+/* ====== Guardar / Importar ====== */
+function serialize(){
+  // mapear pines por índice
+  const nodeIndex = new Map(nodes.map((n,i)=>[n, i]));
+  const data = {
+    meta:{ app:"SIMUPASIR", version:1 },
+    counts:{ inputCount, outputCount, memoryCount, blockCodeCount, nextNodeId },
+    nodes: nodes.map(n=>({
+      id:n.id, type:n.type, name:n.name, code:n.code,
+      x:parseFloat(n.el.style.left)||0, y:parseFloat(n.el.style.top)||0,
+      delayMs: (n.type==='ton' || n.type==='toff') ? (n.delayMs ?? 1000) : undefined
+    })),
+    connections: connections.map(c=>{
+      const fromNode = nodes.find(n=>n.output===c.from);
+      const toNode   = nodes.find(n=>n.inputs.includes(c.to));
+      const toIndex  = toNode ? toNode.inputs.indexOf(c.to) : 0;
+      return { fromId: fromNode?.id, toId: toNode?.id, toIndex, mode:c.mode||'wire' };
+    })
+  };
+  return data;
+}
+function download(filename, text){
+  const blob = new Blob([text], {type:"application/json"});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click();
+  URL.revokeObjectURL(a.href); a.remove();
+}
+btnSave.addEventListener('click', ()=>{
+  const name = prompt('Nombre del archivo (sin extensión):', 'proyecto');
+  if(name===null) return;
+  const safe = (name.trim() || 'proyecto').replace(/[<>:"/\\|?*\x00-\x1F]/g,'_');
+  const data = serialize();
+  download(safe + '.json', JSON.stringify(data,null,2));
+});
+btnLoad.addEventListener('click', ()=> loadInput.click());
+loadInput.addEventListener('change', async (e)=>{
+  const file = e.target.files?.[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+    loadFromData(data);
+  }catch(err){
+    alert('No se pudo importar el archivo.');
+    console.error(err);
+  }finally{
+    loadInput.value = '';
+  }
+});
+function clearAll(){
+  // borra todo del lienzo
+  [...connections].forEach(removeConnection);
+  [...nodes].forEach(n=>removeNode(n));
+  nodes=[]; connections=[];
+  inputCount=outputCount=memoryCount=blockCodeCount=0;
+  nextNodeId=1;
+  updateConnections();
+}
+function loadFromData(data){
+  clearAll();
+  // restaurar contadores
+  if(data.counts){
+    inputCount=data.counts.inputCount||0;
+    outputCount=data.counts.outputCount||0;
+    memoryCount=data.counts.memoryCount||0;
+    blockCodeCount=data.counts.blockCodeCount||0;
+    nextNodeId=data.counts.nextNodeId||1;
+  }
+  const idMap = new Map();
+  // crear nodos
+  for(const n of (data.nodes||[])){
+    const elType = n.type;
+    createNode(elType, n.x||0, n.y||0);
+    const created = nodes[nodes.length-1];
+    // sobreescribir id, name, code
+    created.id = n.id ?? created.id;
+    if(n.name) created.name = n.name;
+    if(n.code && created.code==null){
+      created.code = n.code;
+      // mostrar badge con el código
+      const badge=document.createElement('div'); badge.className='badge'; badge.textContent=n.code;
+      created.el.appendChild(badge);
+    }
+    // actualizar label visible si es I/Q/M basado en contadores previos ya restaurados
+    created.el.querySelector('.label').textContent = logoLabelForType(created.type).match(/^(TON|TOFF|S\/R|[&≥1=1≠1M1])$/) ? created.el.querySelector('.label').textContent : created.name;
+
+    // restaurar delay
+    if((elType==='ton' || elType==='toff') && typeof n.delayMs==='number'){
+      created.delayMs = n.delayMs;
+    }
+    idMap.set(n.id, created);
+  }
+  // crear conexiones
+  for(const c of (data.connections||[])){
+    const fromNode = idMap.get(c.fromId);
+    const toNode   = idMap.get(c.toId);
+    if(!fromNode || !toNode) continue;
+    const toPin = toNode.inputs[c.toIndex||0];
+    createConnection(fromNode.output, toPin);
+    const conn = connections[connections.length-1];
+    if(c.mode==='label'){ convertWireToLabel(conn); }
+  }
+  updateConnections();
+}
+
 /* Init */
 updateConnections();
-console.log("SIMUPASIR: TON/TOFF corregidos (TOFF arranca tras primera energización).");
+console.log("SIMUPASIR listo: biblioteca en menú, guardar/importar JSON con nombre, temporizadores en segundos.");
 </script>
 </body>
 </html>
