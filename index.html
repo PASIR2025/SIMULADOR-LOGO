@@ -186,6 +186,27 @@
 }
 </style>
 
+
+<!-- === BEGIN: performance & layout patch === -->
+<style id="perf-layout-patch">
+/* Sidebar visible en vertical y horizontal */
+#sidebar{ overflow:auto; -webkit-overflow-scrolling:touch; }
+@media (orientation: landscape){
+  #sidebar{
+    width: 240px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  #sidebar > div[style*="font-weight"]{ grid-column: 1 / -1; }
+  #sidebar .component{ font-size: 18px; }
+}
+
+/* Evita jank en gestos táctiles sobre canvas y cables */
+#canvas, #wires, .bend-handle, .bend-hit, .hub-dot, .hub-hit { touch-action: none; }
+</style>
+<!-- === END: performance & layout patch === -->
+
 </head>
 <body>
 
@@ -1441,5 +1462,193 @@ if (typeof removeConnectionById !== 'function') {
   }
 }
 </script>
+
+
+<!-- === BEGIN: performance & deletion patch === -->
+<script id="perf-deletion-patch">
+(function(){
+  // Helpers para detectar globals sin romper si no existen
+  const g = (name)=> (typeof window[name] !== 'undefined') ? window[name] : undefined;
+  const has = (name)=> typeof window[name] !== 'undefined';
+
+  // ====== Scheduler con requestAnimationFrame ======
+  let rafId = null;
+  let dirtyConns = new Set();
+  function scheduleWireLayout(conn){
+    if (conn) dirtyConns.add(conn);
+    if (rafId != null) return;
+    rafId = requestAnimationFrame(()=>{
+      rafId = null;
+      if (dirtyConns.size === 0){
+        if (typeof window.updateConnections === 'function') {
+          try { window.updateConnections(); } catch(e){ console.error(e); }
+        }
+        return;
+      }
+      dirtyConns.forEach(c => {
+        try {
+          if (typeof c.rebuildPath === 'function') c.rebuildPath();
+          else if (typeof window.updateConnections === 'function') window.updateConnections();
+        } catch(e){ console.error('updateConnectionPath', e); }
+      });
+      dirtyConns.clear();
+    });
+  }
+
+  // ====== Pausar/Reanudar simulación durante drag ======
+  let pausedByDrag = false;
+  function pauseSimulation(){
+    if (pausedByDrag) return;
+    pausedByDrag = true;
+    if (has('simTimer') && window.simTimer){ clearInterval(window.simTimer); window.simTimer = null; }
+  }
+  function resumeSimulation(){
+    if (!pausedByDrag) return;
+    pausedByDrag = false;
+    if (!has('SCAN_MS')) window.SCAN_MS = 60;
+    if (!has('tickSimulation')) window.tickSimulation = function(){};
+    if (!has('simTimer') || !window.simTimer){
+      window.simTimer = setInterval(window.tickSimulation, window.SCAN_MS);
+    }
+  }
+  window.pauseSimulation = window.pauseSimulation || pauseSimulation;
+  window.resumeSimulation = window.resumeSimulation || resumeSimulation;
+  window.scheduleWireLayout = window.scheduleWireLayout || scheduleWireLayout;
+
+  // ====== Arrastre de handles con rAF y sin bloquear paneo ======
+  let draggingBend = null;
+  function clientToWorkspace(x, y){
+    // Fallback simple si no existe util nativa
+    if (typeof window.clientToWorkspace === 'function') return window.clientToWorkspace(x,y);
+    return { x, y };
+  }
+
+  function onBendPointerDown(e, conn, handle){
+    draggingBend = { conn, handle };
+    try { window.pauseSimulation(); } catch {}
+    if (g('wiresSVG')) wiresSVG.style.pointerEvents = 'none';
+    window.addEventListener('pointermove', onBendPointerMove);
+    window.addEventListener('pointerup', onBendPointerUp, { once:true });
+  }
+  function onBendPointerMove(e){
+    if (!draggingBend) return;
+    const { conn, handle } = draggingBend;
+    const pt = clientToWorkspace(e.clientX, e.clientY);
+    handle.x = pt.x; handle.y = pt.y;
+    scheduleWireLayout(conn);
+  }
+  function onBendPointerUp(e){
+    if (!draggingBend) return;
+    const { conn } = draggingBend;
+    draggingBend = null;
+    scheduleWireLayout(conn);
+    try { window.resumeSimulation(); } catch {}
+    if (g('wiresSVG')) wiresSVG.style.pointerEvents = 'auto';
+    window.removeEventListener('pointermove', onBendPointerMove);
+  }
+
+  // Hook opcional si el proyecto expone un registrador de eventos de handles
+  if (!window.__handlesPatched){
+    window.__handlesPatched = true;
+    // Si tus handles se crean dinámicamente, puedes llamar a attachHandleDrag(el, conn, model)
+    window.attachHandleDrag = function(el, conn, model){
+      if (!el) return;
+      el.addEventListener('pointerdown', function(e){
+        e.preventDefault();
+        onBendPointerDown(e, conn, model);
+      });
+    };
+  }
+
+  // ====== Mejor paneo: desactiva hit de cables durante pan ======
+  let isPanning = false;
+  function startPan(){ isPanning = true; if (g('wiresSVG')) wiresSVG.style.pointerEvents = 'none'; }
+  function endPan(){ isPanning = false; if (g('wiresSVG')) wiresSVG.style.pointerEvents = 'auto'; scheduleWireLayout(); }
+  window.startPan = window.startPan || startPan;
+  window.endPan = window.endPan || endPan;
+
+  // ====== Limpieza de estados al click vacío ======
+  function clearGhostStates(){
+    if (has('selectedPinEl') && window.selectedPinEl){ try{ selectedPinEl.classList.remove('pin-selected'); }catch{}; window.selectedPinEl=null; }
+    if (has('pendingOutput')) window.pendingOutput=null;
+    if (typeof window.removeGhost === 'function') try{ window.removeGhost(); }catch{}
+    if (typeof window.hideWireMenu === 'function') try{ window.hideWireMenu(); }catch{}
+  }
+
+  // Intenta enganchar al canvas/workspace/wiresSVG si existen
+  if (g('canvas') && g('workspace') && g('wiresSVG')){
+    canvas.addEventListener('click', (e)=>{
+      if (e.target===workspace || e.target===wiresSVG){ clearGhostStates(); }
+    });
+  }
+
+  // ====== Delete arreglado (fuera de otros scopes) ======
+  window.deleteSelected = function(){
+    if (has('simulation') && window.simulation) return;
+
+    if (has('selectedNode') && window.selectedNode){
+      if (typeof window.removeNode === 'function') window.removeNode(window.selectedNode);
+      window.selectedNode = null;
+      scheduleWireLayout();
+      return;
+    }
+
+    if (has('selectedConn') && window.selectedConn){
+      if (typeof window.removeConnection === 'function') window.removeConnection(window.selectedConn);
+      window.selectedConn = null;
+      scheduleWireLayout();
+      return;
+    }
+
+    if (has('selectedBranch') && window.selectedBranch){
+      const connByBranch = (has('connections') ? window.connections.find(c => c.srcBranch===selectedBranch || c.dstBranch===selectedBranch) : null);
+      if (connByBranch && typeof window.removeConnection === 'function'){
+        window.removeConnection(connByBranch);
+        scheduleWireLayout();
+        return;
+      }
+    }
+
+    if (has('selectedTag') && window.selectedTag){
+      const connByTag = (has('connections') ? window.connections.find(c =>
+        (c.srcBranch && c.srcBranch.tagEl===selectedTag) ||
+        (c.dstBranch && c.dstBranch.tagEl===selectedTag)) : null);
+      if (connByTag && typeof window.removeConnection === 'function'){
+        window.removeConnection(connByTag); scheduleWireLayout(); return;
+      }
+    }
+
+    clearGhostStates();
+    scheduleWireLayout();
+  };
+
+  // ====== Robustecer removeConnection si existe ======
+  if (typeof window.removeConnection === 'function'){
+    const __origRemove = window.removeConnection;
+    window.removeConnection = function(conn){
+      try{ __origRemove(conn); }catch(e){ console.error(e); }
+      try{
+        if (conn){
+          if (conn.hit && conn.hit.remove) conn.hit.remove();
+          if (conn.handles && Array.isArray(conn.handles)){
+            conn.handles.forEach(h=>{ if (h && h.el && h.el.remove) h.el.remove(); });
+            conn.handles.length = 0;
+          }
+        }
+      }catch(e){ console.warn('cleanup extras', e); }
+      // Limpieza de selección/ghost
+      if (has('selectedConn') && window.selectedConn===conn) window.selectedConn=null;
+      clearGhostStates();
+      scheduleWireLayout();
+    };
+  }
+
+  // ====== Reaccionar a rotación de pantalla ======
+  window.addEventListener('orientationchange', ()=>{
+    setTimeout(()=> scheduleWireLayout(), 60);
+  });
+})();
+</script>
+<!-- === END: performance & deletion patch === -->
 
 </body></html>
