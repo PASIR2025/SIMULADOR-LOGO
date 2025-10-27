@@ -232,7 +232,13 @@
     .simulate-btn.is-on { filter: saturate(1.3); }
     .simulate-btn.is-off { opacity: .7; }
     </style>
-    </head>
+    
+<style id="assistant-toggle-sidebar">
+/* Toggle sidebar via .open incluso en landscape */
+#sidebar{ transition: transform .2s ease; }
+#sidebar:not(.open){ transform: translateX(-100%) !important; }
+</style>
+</head>
 <body>
 
   <!-- Topbar -->
@@ -324,8 +330,12 @@ if('serviceWorker' in navigator){ window.addEventListener('load',()=>{ navigator
 /* ===== SIMUPASIR ===== */
 const burger = document.getElementById('burger');
 const sidebar = document.getElementById('sidebar');
-burger.addEventListener('click', ()=>{ sidebar.classList.toggle('open'); });
-
+burger.setAttribute('aria-controls', 'sidebar');
+burger.setAttribute('aria-expanded', String(sidebar.classList.contains('open')));
+burger.addEventListener('click', ()=>{
+  const isOpen = sidebar.classList.toggle('open');
+  burger.setAttribute('aria-expanded', String(isOpen));
+});
 const canvas = document.getElementById("canvas");
 const workspace = document.getElementById("workspace");
 const wiresSVG = document.getElementById("wires");
