@@ -1,20 +1,28 @@
 {
-  "name": "LOGICSOFT - Simulador de Circuitos",
+  "name": "LOGICSOFT",
   "short_name": "LOGICSOFT",
-  "description": "Simulador digital de compuertas y circuitos lógicos. Electrónica para todos.",
-  "start_url": "/SIMULADOR-LOGO/",
-  "scope": "/SIMULADOR-LOGO/",
+  "start_url": ".",
+  "scope": ".",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "background_color": "#0066FF",
-  "theme_color": "#0066FF",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#003366",
   "icons": [
-    { "src": "icons/icon-72.png", "sizes": "72x72", "type": "image/png" },
-    { "src": "icons/icon-96.png", "sizes": "96x96", "type": "image/png" },
-    { "src": "icons/icon-144.png", "sizes": "144x144", "type": "image/png" },
-    { "src": "icons/icon-152.png", "sizes": "152x152", "type": "image/png" },
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icons/icon-384.png", "sizes": "384x384", "type": "image/png" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
   ]
 }
